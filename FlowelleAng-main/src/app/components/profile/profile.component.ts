@@ -16,7 +16,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
-import { User } from '../../models/user';
+import { User } from '../../models/User';
 
 @Component({
   selector: 'app-profile',

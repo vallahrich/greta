@@ -4,5 +4,6 @@ export interface Periodcycle {
     start_date: Date;
     end_date: Date;
     duration: number;
+    notes?: string;
     created_at: Date;
 }

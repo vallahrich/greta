@@ -12,22 +12,16 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatSliderModule } from '@angular/material/slider';
 
 import { PeriodCycleService } from '../../services/periodcycle.service';
-import { CycleEntryService } from '../../services/cycleentry.service';
+import { SymptomService } from '../../services/symptom.service';
+import { CycleSymptomService } from '../../services/cyclesymptom.service';
 import { Periodcycle } from '../../models/periodcycle';
-
-interface Symptom {
-  id: string;
-  name: string;
-  icon?: string;
-}
-
-// Separate interface for cycle notes storage
-interface CycleNotes {
-  cycleId: number;
-  notes: string;
-}
+import { Symptom } from '../../models/symptom';
+import { CycleSymptom } from '../../models/cyclesymptom';
+import { forkJoin, of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-cycle-form',
@@ -45,19 +39,22 @@ interface CycleNotes {
     MatChipsModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatDialogModule
+    MatDialogModule,
+    MatSliderModule
   ],
   templateUrl: './cycle-form.component.html',
   styleUrls: ['./cycle-form.component.css']
 })
 export class CycleFormComponent implements OnInit {
   @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
+  @ViewChild('symptomDialog') symptomDialog!: TemplateRef<any>;
   
   // User data
   userId: number = 1; // This would normally come from an auth service
   
   // Form handling
   cycleForm!: FormGroup;
+  symptomForm!: FormGroup;
   isLoading: boolean = false;
   errorMessage: string = '';
   isEditMode: boolean = false;
@@ -67,30 +64,25 @@ export class CycleFormComponent implements OnInit {
   minDate: Date = new Date(new Date().getFullYear() - 1, 0, 1); // One year ago
   maxDate: Date = new Date(); // Today
   
-  // Symptoms options
-  availableSymptoms: Symptom[] = [
-    { id: 'cramps', name: 'Cramps' },
-    { id: 'headache', name: 'Headache' },
-    { id: 'bloating', name: 'Bloating' },
-    { id: 'fatigue', name: 'Fatigue' },
-    { id: 'mood_swings', name: 'Mood Swings' },
-    { id: 'acne', name: 'Acne' },
-    { id: 'breast_tenderness', name: 'Breast Tenderness' },
-    { id: 'backache', name: 'Backache' }
-  ];
+  // Symptoms data
+  availableSymptoms: Symptom[] = [];
+  selectedSymptoms: Map<number, CycleSymptom> = new Map();
+  currentSymptom: CycleSymptom | null = null;
   
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private formBuilder: FormBuilder,
     private periodCycleService: PeriodCycleService,
-    private cycleEntryService: CycleEntryService,
+    private symptomService: SymptomService,
+    private cycleSymptomService: CycleSymptomService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
   ) {}
   
   ngOnInit(): void {
     this.initForm();
+    this.loadSymptoms();
     this.checkForQueryParams();
     this.checkForEditMode();
   }
@@ -102,9 +94,30 @@ export class CycleFormComponent implements OnInit {
     this.cycleForm = this.formBuilder.group({
       startDate: ['', [Validators.required]],
       endDate: ['', [Validators.required]],
-      symptoms: [[]],
-      notes: [''] // Keep notes in the form but handle them separately
+      notes: [''] // Add notes field
     }, { validators: this.dateRangeValidator });
+    
+    // Initialize symptom form
+    this.symptomForm = this.formBuilder.group({
+      symptomId: ['', [Validators.required]],
+      intensity: [3, [Validators.required, Validators.min(1), Validators.max(5)]],
+      date: ['', [Validators.required]]
+    });
+  }
+  
+  /**
+   * Load all available symptoms
+   */
+  private loadSymptoms(): void {
+    this.symptomService.getAllSymptoms().subscribe({
+      next: (symptoms) => {
+        this.availableSymptoms = symptoms;
+      },
+      error: (error) => {
+        console.error('Error loading symptoms:', error);
+        this.errorMessage = 'Could not load symptoms. Please try again.';
+      }
+    });
   }
   
   /**
@@ -152,22 +165,28 @@ export class CycleFormComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
     
-    this.periodCycleService.getCycleById(cycleId).subscribe({
-      next: (cycle) => {
+    // Load both cycle data and cycle symptoms
+    forkJoin({
+      cycle: this.periodCycleService.getCycleById(cycleId),
+      symptoms: this.cycleSymptomService.getCycleSymptomsByCycleId(cycleId).pipe(
+        catchError(error => {
+          console.error('Error loading cycle symptoms:', error);
+          return of([] as CycleSymptom[]);
+        })
+      )
+    }).subscribe({
+      next: (result) => {
         // Populate form with cycle data
         this.cycleForm.patchValue({
-          startDate: new Date(cycle.start_date),
-          endDate: new Date(cycle.end_date)
+          startDate: new Date(result.cycle.start_date),
+          endDate: new Date(result.cycle.end_date),
+          notes: result.cycle.notes || ''
         });
         
-        // Load stored notes from localStorage
-        const notes = this.loadStoredNotes(cycleId);
-        if (notes) {
-          this.cycleForm.patchValue({ notes });
-        }
-        
-        // Load symptoms (this would need to be implemented in the backend)
-        this.loadCycleSymptoms(cycleId);
+        // Set selected symptoms
+        result.symptoms.forEach(symptom => {
+          this.selectedSymptoms.set(symptom.symptom_id, symptom);
+        });
         
         this.isLoading = false;
       },
@@ -176,76 +195,6 @@ export class CycleFormComponent implements OnInit {
         this.errorMessage = 'Could not load cycle data. Please try again.';
         this.isLoading = false;
       }
-    });
-  }
-  
-  /**
-   * Load notes from localStorage
-   */
-  private loadStoredNotes(cycleId: number): string | null {
-    try {
-      const storedNotes = localStorage.getItem('cycleNotes');
-      if (storedNotes) {
-        const allNotes: CycleNotes[] = JSON.parse(storedNotes);
-        const cycleNotes = allNotes.find(note => note.cycleId === cycleId);
-        return cycleNotes ? cycleNotes.notes : null;
-      }
-    } catch (error) {
-      console.error('Error loading stored notes:', error);
-    }
-    return null;
-  }
-  
-  /**
-   * Save notes to localStorage
-   */
-  private saveNotesToStorage(cycleId: number, notes: string): void {
-    try {
-      const storedNotes = localStorage.getItem('cycleNotes');
-      let allNotes: CycleNotes[] = storedNotes ? JSON.parse(storedNotes) : [];
-      
-      // Find if notes for this cycle already exist
-      const existingIndex = allNotes.findIndex(note => note.cycleId === cycleId);
-      
-      if (existingIndex >= 0) {
-        // Update existing notes
-        allNotes[existingIndex].notes = notes;
-      } else {
-        // Add new notes
-        allNotes.push({ cycleId, notes });
-      }
-      
-      localStorage.setItem('cycleNotes', JSON.stringify(allNotes));
-    } catch (error) {
-      console.error('Error saving notes to storage:', error);
-    }
-  }
-  
-  /**
-   * Delete notes from localStorage
-   */
-  private deleteNotesFromStorage(cycleId: number): void {
-    try {
-      const storedNotes = localStorage.getItem('cycleNotes');
-      if (storedNotes) {
-        let allNotes: CycleNotes[] = JSON.parse(storedNotes);
-        allNotes = allNotes.filter(note => note.cycleId !== cycleId);
-        localStorage.setItem('cycleNotes', JSON.stringify(allNotes));
-      }
-    } catch (error) {
-      console.error('Error deleting notes from storage:', error);
-    }
-  }
-  
-  /**
-   * Load symptoms for a cycle (mock implementation)
-   */
-  private loadCycleSymptoms(cycleId: number): void {
-    // This would need to be implemented with a real service
-    // For now, we'll just simulate it
-    const mockSymptoms = ['cramps', 'fatigue']; // Example symptoms
-    this.cycleForm.patchValue({
-      symptoms: mockSymptoms
     });
   }
   
@@ -267,6 +216,119 @@ export class CycleFormComponent implements OnInit {
     }
     
     return null;
+  }
+  
+  /**
+   * Open symptom dialog to add/edit a symptom
+   */
+  openSymptomDialog(symptomId?: number): void {
+    // Set default date to cycle start date if adding new symptom
+    const cycleStartDate = this.cycleForm.get('startDate')?.value;
+    const cycleEndDate = this.cycleForm.get('endDate')?.value;
+    
+    if (!cycleStartDate || !cycleEndDate) {
+      this.snackBar.open('Please set cycle dates first', 'Close', { duration: 3000 });
+      return;
+    }
+    
+    // Reset form
+    this.symptomForm.reset({
+      intensity: 3
+    });
+    
+    if (symptomId && this.selectedSymptoms.has(symptomId)) {
+      // Edit existing symptom
+      const symptom = this.selectedSymptoms.get(symptomId)!;
+      this.currentSymptom = symptom;
+      
+      this.symptomForm.patchValue({
+        symptomId: symptom.symptom_id,
+        intensity: symptom.intensity,
+        date: new Date(symptom.date)
+      });
+    } else {
+      // New symptom
+      this.currentSymptom = null;
+      this.symptomForm.patchValue({
+        date: new Date(cycleStartDate)
+      });
+    }
+    
+    // Set date validation
+    this.symptomForm.get('date')?.setValidators([
+      Validators.required,
+      this.dateInRangeValidator(new Date(cycleStartDate), new Date(cycleEndDate))
+    ]);
+    this.symptomForm.get('date')?.updateValueAndValidity();
+    
+    // Open dialog
+    this.dialog.open(this.symptomDialog, {
+      width: '400px'
+    });
+  }
+  
+  /**
+   * Custom validator to ensure symptom date is within cycle date range
+   */
+  private dateInRangeValidator(startDate: Date, endDate: Date) {
+    return (control: any) => {
+      const date = control.value;
+      if (!date) return null;
+      
+      const symptomDate = date instanceof Date ? date : new Date(date);
+      
+      // Clear time portion for comparison
+      const clearTime = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const clearedSymptomDate = clearTime(symptomDate);
+      const clearedStartDate = clearTime(startDate);
+      const clearedEndDate = clearTime(endDate);
+      
+      if (clearedSymptomDate < clearedStartDate || clearedSymptomDate > clearedEndDate) {
+        return { 'dateOutOfRange': true };
+      }
+      
+      return null;
+    };
+  }
+  
+  /**
+   * Save symptom to selected symptoms list
+   */
+  saveSymptom(): void {
+    if (this.symptomForm.invalid) {
+      return;
+    }
+    
+    const formValue = this.symptomForm.value;
+    const symptomId = formValue.symptomId;
+    const symptom = this.availableSymptoms.find(s => s.symptom_id === symptomId);
+    
+    if (!symptom) {
+      return;
+    }
+    
+    const cycleSymptom: CycleSymptom = {
+      cycle_symptom_id: this.currentSymptom?.cycle_symptom_id || 0,
+      cycle_id: this.cycleId || 0,
+      symptom_id: symptomId,
+      intensity: formValue.intensity,
+      date: formValue.date,
+      created_at: new Date(),
+      symptom: symptom
+    };
+    
+    // Store in map
+    this.selectedSymptoms.set(symptomId, cycleSymptom);
+    
+    // Close dialog
+    this.dialog.closeAll();
+  }
+  
+  /**
+   * Remove symptom from selected list
+   */
+  removeSymptom(symptomId: number): void {
+    this.selectedSymptoms.delete(symptomId);
   }
   
   /**
@@ -299,43 +361,39 @@ export class CycleFormComponent implements OnInit {
     const durationMs = endDate.getTime() - startDate.getTime();
     const durationDays = Math.floor(durationMs / (1000 * 60 * 60 * 24)) + 1;
     
-    // Create the cycle object without notes
+    // Create the cycle object with notes
     const cycleData: Partial<Periodcycle> = {
       user_id: this.userId,
       start_date: startDate,
       end_date: endDate,
-      duration: durationDays
+      duration: durationDays,
+      notes: formValues.notes
     };
     
     if (this.isEditMode && this.cycleId) {
       // Update existing cycle
       cycleData.cycle_id = this.cycleId;
-      this.updateCycle(cycleData as Periodcycle, formValues.notes);
+      this.updateCycle(cycleData as Periodcycle);
     } else {
       // Create new cycle
-      this.createCycle(cycleData as Periodcycle, formValues.notes);
+      this.createCycle(cycleData as Periodcycle);
     }
   }
   
   /**
    * Create a new cycle
    */
-  private createCycle(cycle: Periodcycle, notes: string): void {
+  private createCycle(cycle: Periodcycle): void {
     this.periodCycleService.createCycle(cycle).subscribe({
       next: (savedCycle) => {
         console.log('Saved cycle data:', savedCycle);
         
-        // Save symptoms (this would need to be implemented in the backend)
-        this.saveSymptoms(savedCycle.cycle_id, this.cycleForm.value.symptoms);
-        
-        // Save notes separately if present
-        if (notes && notes.trim()) {
-          this.saveNotesToStorage(savedCycle.cycle_id, notes);
+        // Save symptoms if any
+        if (this.selectedSymptoms.size > 0) {
+          this.saveCycleSymptoms(savedCycle.cycle_id);
+        } else {
+          this.finalizeSave('Cycle saved successfully');
         }
-        
-        this.snackBar.open('Cycle saved successfully', 'Close', { duration: 3000 });
-        this.isLoading = false;
-        this.navigateBack();
       },
       error: (error) => {
         console.error('Error saving cycle:', error);
@@ -348,25 +406,15 @@ export class CycleFormComponent implements OnInit {
   /**
    * Update an existing cycle
    */
-  private updateCycle(cycle: Periodcycle, notes: string): void {
+  private updateCycle(cycle: Periodcycle): void {
     this.periodCycleService.updateCycle(cycle).subscribe({
       next: () => {
-        // Save symptoms (this would need to be implemented in the backend)
-        if (cycle.cycle_id) {
-          this.saveSymptoms(cycle.cycle_id, this.cycleForm.value.symptoms);
-        
-          // Save notes separately if present
-          if (notes && notes.trim()) {
-            this.saveNotesToStorage(cycle.cycle_id, notes);
-          } else {
-            // Delete notes if empty
-            this.deleteNotesFromStorage(cycle.cycle_id);
-          }
+        // Handle symptoms for existing cycle
+        if (this.cycleId) {
+          this.saveCycleSymptoms(this.cycleId);
+        } else {
+          this.finalizeSave('Cycle updated successfully');
         }
-        
-        this.snackBar.open('Cycle updated successfully', 'Close', { duration: 3000 });
-        this.isLoading = false;
-        this.navigateBack();
       },
       error: (error) => {
         console.error('Error updating cycle:', error);
@@ -377,11 +425,60 @@ export class CycleFormComponent implements OnInit {
   }
   
   /**
-   * Save symptoms for a cycle (mock implementation)
+   * Save cycle symptoms to the database
    */
-  private saveSymptoms(cycleId: number, symptoms: string[]): void {
-    // This would need to be implemented with a real service
-    console.log(`Saving symptoms for cycle ${cycleId}:`, symptoms);
+  private saveCycleSymptoms(cycleId: number): void {
+    // First delete all existing cycle symptoms
+    this.cycleSymptomService.deleteCycleSymptomsByCycleId(cycleId)
+      .pipe(
+        finalize(() => {
+          // If no symptoms to add, we're done
+          if (this.selectedSymptoms.size === 0) {
+            this.finalizeSave('Cycle updated successfully');
+            return;
+          }
+          
+          // Create observables for each symptom save operation
+          const saveOperations = Array.from(this.selectedSymptoms.values()).map(symptom => {
+            // Set cycle ID
+            symptom.cycle_id = cycleId;
+            // Remove existing ID to create new
+            if (!this.isEditMode) {
+              symptom.cycle_symptom_id = 0;
+            }
+            return this.cycleSymptomService.createCycleSymptom(symptom);
+          });
+          
+          // Execute all saves
+          forkJoin(saveOperations)
+            .subscribe({
+              next: () => {
+                this.finalizeSave('Cycle and symptoms saved successfully');
+              },
+              error: (error) => {
+                console.error('Error saving symptoms:', error);
+                this.errorMessage = 'Could not save symptoms. Cycle was saved.';
+                this.isLoading = false;
+              }
+            });
+        })
+      )
+      .subscribe({
+        error: (error) => {
+          console.error('Error deleting existing symptoms:', error);
+          // Continue anyway to save new symptoms
+          this.finalizeSave('Cycle saved, but could not update symptoms');
+        }
+      });
+  }
+  
+  /**
+   * Finalize the save operation
+   */
+  private finalizeSave(message: string): void {
+    this.snackBar.open(message, 'Close', { duration: 3000 });
+    this.isLoading = false;
+    this.navigateBack();
   }
   
   /**
@@ -405,9 +502,6 @@ export class CycleFormComponent implements OnInit {
     
     this.periodCycleService.deleteCycle(cycleId, this.userId).subscribe({
       next: () => {
-        // Also delete notes for this cycle
-        this.deleteNotesFromStorage(cycleId);
-        
         this.snackBar.open('Cycle deleted successfully', 'Close', { duration: 3000 });
         this.isLoading = false;
         this.navigateBack();
@@ -438,5 +532,26 @@ export class CycleFormComponent implements OnInit {
    */
   cancel(): void {
     this.navigateBack();
+  }
+  
+  /**
+   * Get symptom object from ID
+   */
+  getSymptomById(id: number): Symptom | undefined {
+    return this.availableSymptoms.find(s => s.symptom_id === id);
+  }
+  
+  /**
+   * Get color for symptom intensity
+   */
+  getIntensityColor(intensity: number): string {
+    switch (intensity) {
+      case 1: return '#BBDEFB'; // Light blue
+      case 2: return '#90CAF9'; // Lighter blue
+      case 3: return '#FFD54F'; // Amber
+      case 4: return '#FFA726'; // Orange
+      case 5: return '#FF7043'; // Deep orange
+      default: return '#E0E0E0'; // Grey
+    }
   }
 }

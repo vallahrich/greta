@@ -9,7 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AuthService } from '../../services/auth.service';
 import { PeriodCycleService } from '../../services/periodcycle.service';
-import { Periodcycle } from '../../models/periodcycle';
+import { Periodcycle } from '../../models/Periodcycle';
 
 @Component({
   selector: 'app-dashboard',

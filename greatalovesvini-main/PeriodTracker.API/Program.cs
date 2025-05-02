@@ -14,9 +14,9 @@ builder.Services.AddSwaggerGen();
 
 // Register repositories
 builder.Services.AddScoped<UserRepository>();
-builder.Services.AddScoped<CalendarRepository>();
+builder.Services.AddScoped<SymptomRepository>();
 builder.Services.AddScoped<PeriodCycleRepository>();
-builder.Services.AddScoped<CycleEntryRepository>();
+builder.Services.AddScoped<CycleSymptomRepository>();
 
 // Configure CORS to allow requests from Angular application
 builder.Services.AddCors(options =>

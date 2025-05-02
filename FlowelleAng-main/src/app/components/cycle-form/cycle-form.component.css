@@ -56,10 +56,110 @@
 }
 
 /* Symptoms section */
-.symptoms-list {
+.symptoms-header {
   display: flex;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.selected-symptoms {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.symptom-item {
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 4px solid #ff9a9e;
+  background-color: #fff5f5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.symptom-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.symptom-name {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.symptom-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.symptom-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #666;
+}
+
+.symptom-intensity {
+  display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.intensity-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.intensity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+}
+
+.intensity-dot.active {
+  background-color: #ff5c5c;
+}
+
+.symptom-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.symptom-date mat-icon {
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+}
+
+.no-symptoms {
+  text-align: center;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  color: #888;
+  font-style: italic;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.intensity-field {
+  margin-bottom: 16px;
+}
+
+.intensity-field label {
+  display: block;
+  margin-bottom: 8px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
 }
 
 /* Date range error */

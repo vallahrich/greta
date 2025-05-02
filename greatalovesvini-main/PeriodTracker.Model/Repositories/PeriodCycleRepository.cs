@@ -29,6 +29,7 @@ namespace PeriodTracker.Model.Repositories
                         userId = Convert.ToInt32(data["user_id"]),
                         startDate = Convert.ToDateTime(data["start_date"]),
                         endDate = Convert.ToDateTime(data["end_date"]),
+                        notes = data["notes"] != DBNull.Value ? data["notes"].ToString() : null,
                         createdAt = Convert.ToDateTime(data["created_at"])
                     };
                 }
@@ -61,6 +62,7 @@ namespace PeriodTracker.Model.Repositories
                             userId = Convert.ToInt32(data["user_id"]),
                             startDate = Convert.ToDateTime(data["start_date"]),
                             endDate = Convert.ToDateTime(data["end_date"]),
+                            notes = data["notes"] != DBNull.Value ? data["notes"].ToString() : null,
                             createdAt = Convert.ToDateTime(data["created_at"])
                         };
                         cycles.Add(cycle);
@@ -83,14 +85,15 @@ namespace PeriodTracker.Model.Repositories
                 var cmd = dbConn.CreateCommand();
                 cmd.CommandText = @"
                     INSERT INTO PeriodCycle 
-                    (user_id, start_date, end_date, created_at)
+                    (user_id, start_date, end_date, notes, created_at)
                     VALUES 
-                    (@userId, @startDate, @endDate, @createdAt)
+                    (@userId, @startDate, @endDate, @notes, @createdAt)
                     RETURNING cycle_id";
                 
                 cmd.Parameters.AddWithValue("@userId", NpgsqlDbType.Integer, cycle.userId);
                 cmd.Parameters.AddWithValue("@startDate", NpgsqlDbType.Date, cycle.startDate);
                 cmd.Parameters.AddWithValue("@endDate", NpgsqlDbType.Date, cycle.endDate);
+                cmd.Parameters.AddWithValue("@notes", NpgsqlDbType.Text, (object)cycle.notes ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@createdAt", NpgsqlDbType.TimestampTz, DateTime.UtcNow);
                 
                 dbConn.Open();
@@ -120,11 +123,13 @@ namespace PeriodTracker.Model.Repositories
                 cmd.CommandText = @"
                     UPDATE PeriodCycle SET
                     start_date = @startDate,
-                    end_date = @endDate
+                    end_date = @endDate,
+                    notes = @notes
                     WHERE cycle_id = @cycleId AND user_id = @userId";
                 
                 cmd.Parameters.AddWithValue("@startDate", NpgsqlDbType.Date, cycle.startDate);
                 cmd.Parameters.AddWithValue("@endDate", NpgsqlDbType.Date, cycle.endDate);
+                cmd.Parameters.AddWithValue("@notes", NpgsqlDbType.Text, (object)cycle.notes ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@cycleId", NpgsqlDbType.Integer, cycle.cycleId);
                 cmd.Parameters.AddWithValue("@userId", NpgsqlDbType.Integer, cycle.userId);
                 
@@ -164,7 +169,7 @@ namespace PeriodTracker.Model.Repositories
             {
                 dbConn = new NpgsqlConnection(ConnectionString);
                 var cmd = dbConn.CreateCommand();
-                cmd.CommandText = "SELECT AVG(EXTRACT(EPOCH FROM duration)/86400) FROM PeriodCycle WHERE user_id = @userId";
+                cmd.CommandText = "SELECT AVG(duration) FROM PeriodCycle WHERE user_id = @userId";
                 cmd.Parameters.Add("@userId", NpgsqlDbType.Integer).Value = userId;
                 
                 dbConn.Open();

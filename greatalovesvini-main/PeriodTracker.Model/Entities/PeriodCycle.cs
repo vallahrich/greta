@@ -9,13 +9,24 @@ public class PeriodCycle
         cycleId = id;
     }
 
+    // Parameterless constructor for JSON deserialization
+    [JsonConstructor]
+    public PeriodCycle()
+    {
+        // Parameterless constructor for deserialization
+    }
+
     public int cycleId { get; set; } // Using camelCase to match frontend expectations
     public int userId { get; set; }
     public DateTime startDate { get; set; }
     public DateTime endDate { get; set; }
+    
     // Duration is a computed column in the database (interval type)
     // We'll use this property to convert to days for the frontend
     public int duration => (int)(endDate - startDate).TotalDays + 1;
+    
+    // New property for notes
+    public string notes { get; set; }
     public DateTime createdAt { get; set; } = DateTime.Now;
 
     // Navigation properties
@@ -23,5 +34,5 @@ public class PeriodCycle
     public User User { get; set; }
     
     [JsonIgnore] // Prevent circular references
-    public List<CycleEntry> CycleEntries { get; set; } = new List<CycleEntry>();
+    public List<CycleSymptom> CycleSymptoms { get; set; } = new List<CycleSymptom>();
 }

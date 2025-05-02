@@ -10,11 +10,16 @@ namespace PeriodTracker.API.Controllers
     {
         private readonly PeriodCycleRepository _periodCycleRepository;
         private readonly UserRepository _userRepository;
+        private readonly CycleSymptomRepository _cycleSymptomRepository;
 
-        public PeriodCycleController(PeriodCycleRepository periodCycleRepository, UserRepository userRepository)
+        public PeriodCycleController(
+            PeriodCycleRepository periodCycleRepository, 
+            UserRepository userRepository,
+            CycleSymptomRepository cycleSymptomRepository)
         {
             _periodCycleRepository = periodCycleRepository;
             _userRepository = userRepository;
+            _cycleSymptomRepository = cycleSymptomRepository;
         }
 
         // GET: api/periodcycle/{id}
@@ -151,6 +156,10 @@ namespace PeriodTracker.API.Controllers
                 return StatusCode(StatusCodes.Status403Forbidden, "You can only delete your own period cycles");
             }
 
+            // Delete any associated symptoms first
+            _cycleSymptomRepository.DeleteCycleSymptomsByCycleId(id);
+
+            // Delete the cycle
             bool success = _periodCycleRepository.DeleteCycle(id, userId);
             if (!success)
             {

@@ -31,4 +31,8 @@ export class PeriodCycleService {
   deleteCycle(id: number, userId: number): Observable<any> {
     return this.http.delete(`${this.baseUrl}/${id}/user/${userId}`);
   }
+  
+  getAverageCycleDuration(userId: number): Observable<number> {
+    return this.http.get<number>(`${this.baseUrl}/user/${userId}/average-duration`);
+  }
 }

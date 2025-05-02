@@ -7,12 +7,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatMenuModule } from '@angular/material/menu';
 
-import { CalendarService } from '../../services/calendar.service';
+import { CalendarService } from '../../services/symptom.service';
 import { PeriodCycleService } from '../../services/periodcycle.service';
-import { CycleEntryService } from '../../services/cycleentry.service';
-import { Calendar } from '../../models/calendar';
-import { Periodcycle } from '../../models/periodcycle';
-import { Cycleentry } from '../../models/cycleentry';
+import { CycleEntryService } from '../../services/cyclesymptom.service';
+import { Calendar } from '../../models/Symptom';
+import { Periodcycle } from '../../models/Periodcycle';
+import { Cycleentry } from '../../models/CycleSymptom';
 import { forkJoin, Observable, of, catchError } from 'rxjs';
 
 interface CalendarDay {

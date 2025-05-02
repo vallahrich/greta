@@ -56,12 +56,49 @@
 
       <div class="form-section">
         <h2>Symptoms</h2>
+        <div class="symptoms-header">
+          <span>Track your symptoms and their intensity</span>
+          <button type="button" mat-mini-fab color="primary" (click)="openSymptomDialog()">
+            <mat-icon>add</mat-icon>
+          </button>
+        </div>
         
-        <mat-chip-listbox class="symptoms-list" formControlName="symptoms" multiple>
-          <mat-chip-option *ngFor="let symptom of availableSymptoms" [value]="symptom.id">
-            {{symptom.name}}
-          </mat-chip-option>
-        </mat-chip-listbox>
+        <!-- Selected symptoms list -->
+        <div class="selected-symptoms" *ngIf="selectedSymptoms.size > 0">
+          <div *ngFor="let entry of selectedSymptoms | keyvalue" class="symptom-item" 
+              [style.border-color]="getIntensityColor(entry.value.intensity)">
+            <div class="symptom-header">
+              <span class="symptom-name">
+                {{entry.value.symptom?.name || getSymptomById(entry.value.symptom_id)?.name}}
+              </span>
+              <div class="symptom-actions">
+                <button type="button" mat-icon-button (click)="openSymptomDialog(entry.key)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button type="button" mat-icon-button color="warn" (click)="removeSymptom(entry.key)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            </div>
+            <div class="symptom-details">
+              <div class="symptom-intensity">
+                <span class="intensity-label">Intensity:</span>
+                <div class="intensity-dots">
+                  <span *ngFor="let i of [1, 2, 3, 4, 5]" class="intensity-dot"
+                    [class.active]="i <= entry.value.intensity"></span>
+                </div>
+              </div>
+              <div class="symptom-date">
+                <mat-icon>calendar_today</mat-icon>
+                <span>{{entry.value.date | date:'mediumDate'}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div *ngIf="selectedSymptoms.size === 0" class="no-symptoms">
+          No symptoms added. Click the + button to add symptoms.
+        </div>
       </div>
 
       <div class="form-section">
@@ -94,5 +131,57 @@
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
     <button mat-raised-button color="warn" [mat-dialog-close]="true">Delete</button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Symptom Dialog -->
+<ng-template #symptomDialog>
+  <h2 mat-dialog-title>{{currentSymptom ? 'Edit Symptom' : 'Add Symptom'}}</h2>
+  <mat-dialog-content>
+    <form [formGroup]="symptomForm">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Symptom</mat-label>
+        <mat-select formControlName="symptomId">
+          <mat-option *ngFor="let symptom of availableSymptoms" [value]="symptom.symptom_id">
+            {{symptom.name}}
+          </mat-option>
+        </mat-select>
+        <mat-error *ngIf="symptomForm.get('symptomId')?.hasError('required')">
+          Please select a symptom
+        </mat-error>
+      </mat-form-field>
+      
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Date</mat-label>
+        <input matInput [matDatepicker]="symptomDatePicker" formControlName="date">
+        <mat-datepicker-toggle matIconSuffix [for]="symptomDatePicker"></mat-datepicker-toggle>
+        <mat-datepicker #symptomDatePicker></mat-datepicker>
+        <mat-error *ngIf="symptomForm.get('date')?.hasError('required')">
+          Date is required
+        </mat-error>
+        <mat-error *ngIf="symptomForm.get('date')?.hasError('dateOutOfRange')">
+          Date must be within cycle date range
+        </mat-error>
+      </mat-form-field>
+      
+      <div class="intensity-field">
+        <label>Intensity (1-5):</label>
+        <mat-slider
+          min="1"
+          max="5"
+          step="1"
+          discrete
+          [displayWith]="(value: number) => value.toString()"
+          class="full-width">
+          <input matSliderThumb formControlName="intensity">
+        </mat-slider>
+      </div>
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-raised-button color="primary" [disabled]="symptomForm.invalid" (click)="saveSymptom()">
+      Save
+    </button>
   </mat-dialog-actions>
 </ng-template>
