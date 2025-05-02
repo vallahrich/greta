@@ -1,0 +1,51 @@
+<!-- Symptom Dialog -->
+<ng-template #symptomDialog>
+  <h2 mat-dialog-title>{{currentSymptom ? 'Edit Symptom' : 'Add Symptom'}}</h2>
+  <mat-dialog-content>
+    <form [formGroup]="symptomForm">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Symptom</mat-label>
+        <mat-select formControlName="symptomId">
+          <mat-option *ngFor="let symptom of availableSymptoms" [value]="symptom.symptom_id">
+            {{symptom.name}}
+          </mat-option>
+        </mat-select>
+        <mat-error *ngIf="symptomForm.get('symptomId')?.hasError('required')">
+          Please select a symptom
+        </mat-error>
+      </mat-form-field>
+      
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Date</mat-label>
+        <input matInput [matDatepicker]="symptomDatePicker" formControlName="date">
+        <mat-datepicker-toggle matIconSuffix [for]="symptomDatePicker"></mat-datepicker-toggle>
+        <mat-datepicker #symptomDatePicker></mat-datepicker>
+        <mat-error *ngIf="symptomForm.get('date')?.hasError('required')">
+          Date is required
+        </mat-error>
+        <mat-error *ngIf="symptomForm.get('date')?.hasError('dateOutOfRange')">
+          Date must be within cycle date range
+        </mat-error>
+      </mat-form-field>
+      
+      <div class="intensity-field">
+        <label>Intensity (1-5):</label>
+        <mat-slider
+          min="1"
+          max="5"
+          step="1"
+          discrete
+          [displayWith]="formatSliderThumbValue"
+          class="full-width">
+          <input matSliderThumb formControlName="intensity">
+        </mat-slider>
+      </div>
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-raised-button color="primary" [disabled]="symptomForm.invalid" (click)="saveSymptom()">
+      Save
+    </button>
+  </mat-dialog-actions>
+</ng-template>

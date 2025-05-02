@@ -50,6 +50,34 @@ namespace PeriodTracker.API.Controllers
                 return BadRequest("Symptom name is required");
             }
 
+            bool success = _symptomRepository.InsertSymptom(symptom);
+            if (!success)
+            {
+                return BadRequest("Failed to create symptom");
+            }
+
+            return CreatedAtAction(nameof(GetSymptomById), new { id = symptom.symptomId }, symptom);
+        }
+
+        // PUT: api/symptom
+        [HttpPut]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult UpdateSymptom(Symptom symptom)
+        {
+            // Check if symptom exists
+            var existingSymptom = _symptomRepository.GetById(symptom.symptomId);
+            if (existingSymptom == null)
+            {
+                return NotFound($"Symptom with ID {symptom.symptomId} not found");
+            }
+
+            if (string.IsNullOrWhiteSpace(symptom.name))
+            {
+                return BadRequest("Symptom name is required");
+            }
+
             bool success = _symptomRepository.UpdateSymptom(symptom);
             if (!success)
             {
@@ -81,31 +109,5 @@ namespace PeriodTracker.API.Controllers
 
             return NoContent();
         }
-            }
-
-            bool success = _symptomRepository.InsertSymptom(symptom);
-            if (!success)
-            {
-                return BadRequest("Failed to create symptom");
-            }
-
-            return CreatedAtAction(nameof(GetSymptomById), new { id = symptom.symptomId }, symptom);
-        }
-
-        // PUT: api/symptom
-        [HttpPut]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult UpdateSymptom(Symptom symptom)
-        {
-            // Check if symptom exists
-            var existingSymptom = _symptomRepository.GetById(symptom.symptomId);
-            if (existingSymptom == null)
-            {
-                return NotFound($"Symptom with ID {symptom.symptomId} not found");
-            }
-
-            if (string.IsNullOrWhiteSpace(symptom.name))
-            {
-                return BadRequest("Symptom name is required");
+    }
+}

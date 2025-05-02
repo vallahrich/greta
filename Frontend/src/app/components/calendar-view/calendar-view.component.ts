@@ -7,13 +7,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatMenuModule } from '@angular/material/menu';
 
-import { CalendarService } from '../../services/symptom.service';
+import { SymptomService } from '../../services/symptom.service';
 import { PeriodCycleService } from '../../services/periodcycle.service';
-import { CycleEntryService } from '../../services/cyclesymptom.service';
-import { Calendar } from '../../models/Symptom';
+import { CycleSymptomService } from '../../services/cyclesymptom.service';
 import { Periodcycle } from '../../models/Periodcycle';
-import { Cycleentry } from '../../models/CycleSymptom';
 import { forkJoin, Observable, of, catchError } from 'rxjs';
+
+import { AuthService } from '../../services/auth.service';
 
 interface CalendarDay {
   day: number | null;
@@ -54,10 +54,8 @@ export class CalendarViewComponent implements OnInit {
   selectedDay: CalendarDay | null = null;
   
   // Data from services
-  userId: number = 1; // This would normally come from an auth service
-  calendarData: Calendar | null = null;
+  userId: number | null = null;
   cycleData: Periodcycle[] = [];
-  entryData: Cycleentry[] = [];
   
   // UI state
   isLoading: boolean = false;
@@ -65,12 +63,19 @@ export class CalendarViewComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private calendarService: CalendarService,
+    private symptomService: SymptomService,
     private periodCycleService: PeriodCycleService,
-    private cycleEntryService: CycleEntryService
+    private cycleSymptomService: CycleSymptomService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
+    this.userId = this.authService.getUserId();
+    if (!this.userId) {
+      this.errorMessage = 'User ID not found. Please log in again.';
+      return;
+    }
+    
     this.initializeCalendarState();
     this.loadCalendarData();
   }
@@ -94,72 +99,29 @@ export class CalendarViewComponent implements OnInit {
    * Load all data needed for the calendar from services
    */
   private loadCalendarData(): void {
+    if (!this.userId) return;
+    
     this.isLoading = true;
     this.errorMessage = '';
     this.selectedDay = null;
     
-    // Get current month and year for API requests
-    const month = this.currentDate.getMonth() + 1; // JavaScript months are 0-based
-    const year = this.currentDate.getFullYear();
-    
-    // Create the requests but don't execute them yet
-    const calendarRequest$ = this.calendarService.getCalendarByMonthYear(this.userId, month, year)
-      .pipe(catchError(error => {
-        console.error('Error fetching calendar:', error);
-        return of(null);
-      }));
-      
-    const cyclesRequest$ = this.periodCycleService.getCyclesByUserId(this.userId)
+    // Get cycles for the user
+    this.periodCycleService.getCyclesByUserId(this.userId)
       .pipe(catchError(error => {
         console.error('Error fetching cycles:', error);
         return of([]);
-      }));
-    
-    // Execute both requests in parallel
-    forkJoin({
-      calendar: calendarRequest$,
-      cycles: cyclesRequest$
-    }).subscribe({
-      next: (results) => {
-        this.calendarData = results.calendar;
-        this.cycleData = results.cycles;
-        
-        // If we have a calendar, load the entries
-        if (this.calendarData) {
-          this.loadEntriesForCalendar(this.calendarData.calendar_id);
-        } else {
-          this.generateCalendarGrid();
-          this.isLoading = false;
-        }
-      },
-      error: (err) => {
-        console.error('Error loading calendar data:', err);
-        this.errorMessage = 'Could not load calendar data. Please try again later.';
-        this.isLoading = false;
-        this.generateCalendarGrid(); // Still generate the grid even if data loading fails
-      }
-    });
-  }
-  
-  /**
-   * Load entries for a specific calendar
-   */
-  private loadEntriesForCalendar(calendarId: number): void {
-    this.cycleEntryService.getEntriesByCalendarId(calendarId)
-      .pipe(catchError(error => {
-        console.error('Error fetching entries:', error);
-        return of([]);
       }))
       .subscribe({
-        next: (entries) => {
-          this.entryData = entries;
+        next: (cycles) => {
+          this.cycleData = cycles;
           this.generateCalendarGrid();
           this.isLoading = false;
         },
         error: (err) => {
-          console.error('Error loading entries:', err);
-          this.generateCalendarGrid(); // Still generate the grid even if entries fail to load
+          console.error('Error loading calendar data:', err);
+          this.errorMessage = 'Could not load calendar data. Please try again later.';
           this.isLoading = false;
+          this.generateCalendarGrid(); // Still generate the grid even if data loading fails
         }
       });
   }

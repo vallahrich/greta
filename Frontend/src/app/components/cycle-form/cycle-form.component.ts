@@ -8,18 +8,19 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSliderModule } from '@angular/material/slider';
+import { MatSelectModule } from '@angular/material/select'; // Add this import
 
 import { PeriodCycleService } from '../../services/periodcycle.service';
 import { SymptomService } from '../../services/symptom.service';
 import { CycleSymptomService } from '../../services/cyclesymptom.service';
-import { Periodcycle } from '../../models/periodcycle';
-import { Symptom } from '../../models/symptom';
-import { CycleSymptom } from '../../models/cyclesymptom';
+import { AuthService } from '../../services/auth.service';
+import { Periodcycle } from '../../models/Periodcycle';
+import { Symptom } from '../../models/Symptom';
+import { CycleSymptom } from '../../models/CycleSymptom';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 
@@ -36,11 +37,11 @@ import { catchError, finalize } from 'rxjs/operators';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatChipsModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatDialogModule,
-    MatSliderModule
+    MatSliderModule,
+    MatSelectModule // Add this module
   ],
   templateUrl: './cycle-form.component.html',
   styleUrls: ['./cycle-form.component.css']
@@ -50,7 +51,7 @@ export class CycleFormComponent implements OnInit {
   @ViewChild('symptomDialog') symptomDialog!: TemplateRef<any>;
   
   // User data
-  userId: number = 1; // This would normally come from an auth service
+  userId: number | null = null;
   
   // Form handling
   cycleForm!: FormGroup;
@@ -76,15 +77,32 @@ export class CycleFormComponent implements OnInit {
     private periodCycleService: PeriodCycleService,
     private symptomService: SymptomService,
     private cycleSymptomService: CycleSymptomService,
+    private authService: AuthService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
   ) {}
   
   ngOnInit(): void {
+    this.userId = this.authService.getUserId();
+    
+    if (!this.userId) {
+      this.errorMessage = 'User ID not found. Please log in again.';
+      this.snackBar.open('Please log in again.', 'Close', { duration: 3000 });
+      this.router.navigate(['/login']);
+      return;
+    }
+    
     this.initForm();
     this.loadSymptoms();
     this.checkForQueryParams();
     this.checkForEditMode();
+  }
+  
+  /**
+   * Format display value for slider
+   */
+  formatSliderThumbValue(value: number): string {
+    return value.toString();
   }
   
   /**
@@ -94,7 +112,7 @@ export class CycleFormComponent implements OnInit {
     this.cycleForm = this.formBuilder.group({
       startDate: ['', [Validators.required]],
       endDate: ['', [Validators.required]],
-      notes: [''] // Add notes field
+      notes: ['']
     }, { validators: this.dateRangeValidator });
     
     // Initialize symptom form
@@ -130,11 +148,7 @@ export class CycleFormComponent implements OnInit {
           const selectedDate = new Date(params['date']);
           if (!isNaN(selectedDate.getTime())) {
             this.cycleForm.patchValue({
-              startDate: selectedDate
-            });
-            
-            // Set end date to same date by default
-            this.cycleForm.patchValue({
+              startDate: selectedDate,
               endDate: new Date(selectedDate)
             });
           }
@@ -335,7 +349,7 @@ export class CycleFormComponent implements OnInit {
    * Save the cycle data to the database
    */
   saveCycle(): void {
-    if (this.cycleForm.invalid) {
+    if (this.cycleForm.invalid || !this.userId) {
       // Mark fields as touched to trigger validation messages
       Object.keys(this.cycleForm.controls).forEach(key => {
         this.cycleForm.get(key)?.markAsTouched();
@@ -349,24 +363,11 @@ export class CycleFormComponent implements OnInit {
     const formValues = this.cycleForm.value;
     
     // Create period cycle data
-    const startDate: Date = formValues.startDate instanceof Date 
-      ? formValues.startDate 
-      : new Date(formValues.startDate);
-      
-    const endDate: Date = formValues.endDate instanceof Date 
-      ? formValues.endDate 
-      : new Date(formValues.endDate);
-    
-    // Calculate duration in days
-    const durationMs = endDate.getTime() - startDate.getTime();
-    const durationDays = Math.floor(durationMs / (1000 * 60 * 60 * 24)) + 1;
-    
-    // Create the cycle object with notes
     const cycleData: Partial<Periodcycle> = {
       user_id: this.userId,
-      start_date: startDate,
-      end_date: endDate,
-      duration: durationDays,
+      start_date: formValues.startDate,
+      end_date: formValues.endDate,
+      duration: this.calculateDuration(formValues.startDate, formValues.endDate),
       notes: formValues.notes
     };
     
@@ -378,6 +379,16 @@ export class CycleFormComponent implements OnInit {
       // Create new cycle
       this.createCycle(cycleData as Periodcycle);
     }
+  }
+  
+  /**
+   * Calculate duration in days between two dates
+   */
+  private calculateDuration(startDate: Date, endDate: Date): number {
+    const start = startDate instanceof Date ? startDate : new Date(startDate);
+    const end = endDate instanceof Date ? endDate : new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
   }
   
   /**
@@ -488,7 +499,7 @@ export class CycleFormComponent implements OnInit {
     const dialogRef = this.dialog.open(this.deleteDialog);
     
     dialogRef.afterClosed().subscribe(result => {
-      if (result && this.cycleId) {
+      if (result && this.cycleId && this.userId) {
         this.deleteCycle(this.cycleId);
       }
     });
@@ -498,6 +509,8 @@ export class CycleFormComponent implements OnInit {
    * Delete a cycle
    */
   deleteCycle(cycleId: number): void {
+    if (!this.userId) return;
+    
     this.isLoading = true;
     
     this.periodCycleService.deleteCycle(cycleId, this.userId).subscribe({

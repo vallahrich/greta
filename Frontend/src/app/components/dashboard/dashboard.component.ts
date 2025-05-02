@@ -28,7 +28,7 @@ import { Periodcycle } from '../../models/Periodcycle';
 })
 export class DashboardComponent implements OnInit {
   // User data
-  userId: number = 1; // This would normally come from an auth service
+  userId: number | null = null;
   
   // Cycle data
   recentCycles: Periodcycle[] = [];
@@ -49,6 +49,13 @@ export class DashboardComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.userId = this.authService.getUserId();
+    
+    if (!this.userId) {
+      this.errorMessage = 'User ID not found. Please log in again.';
+      return;
+    }
+    
     this.loadCycleData();
   }
 
@@ -56,6 +63,8 @@ export class DashboardComponent implements OnInit {
    * Load cycle data from service
    */
   loadCycleData(): void {
+    if (!this.userId) return;
+    
     this.isLoading = true;
     this.errorMessage = '';
     

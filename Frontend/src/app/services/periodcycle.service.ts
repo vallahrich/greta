@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Periodcycle } from '../models/periodcycle';
+import { Periodcycle } from '../models/Periodcycle';
 import { environment } from '../environments/environment';
 
 @Injectable({

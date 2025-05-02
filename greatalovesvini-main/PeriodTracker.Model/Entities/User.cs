@@ -23,10 +23,4 @@ public class User
     public string pw { get; set; } // Database column name is pw
     public DateTime createdAt { get; set; } = DateTime.Now;
 
-    // Navigation properties
-    [JsonIgnore] // Prevent circular references
-    public List<PeriodCycle> PeriodCycles { get; set; } = new List<PeriodCycle>();
-    
-    [JsonIgnore] // Prevent circular references
-    public List<Calendar> Calendars { get; set; } = new List<Calendar>();
 }
