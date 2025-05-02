@@ -1,0 +1,95 @@
+.cycle-form-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+/* Header styles */
+.form-header {
+  background-color: #ff9a9e;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+/* Main content area */
+.form-content {
+  flex: 1;
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Form sections */
+.form-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-section h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #ff5c5c;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+/* Form fields */
+.form-field {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* Symptoms section */
+.symptoms-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Date range error */
+.date-range-error {
+  color: #ef4444;
+  margin-top: -8px;
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+}
+
+/* Form actions */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* Loading container */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+/* Error message */
+.error-message {
+  background-color: #fee2e2;
+  color: #ef4444;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
