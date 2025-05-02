@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "q9BTzXAzrjQPNQQyf6LU/QlD76mYR64ZVz5IPEl7bSY=",
+  "Source": "PeriodTracker.API",
+  "BasePath": "_content/PeriodTracker.API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

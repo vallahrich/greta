@@ -10,7 +10,7 @@ public class BaseRepository
     public BaseRepository(IConfiguration configuration)
     {
         // Get connection string from configuration
-        var connString = configuration.GetConnectionString("period_tracker_db");
+        var connString = configuration.GetConnectionString("gretaDB");
         
         if (string.IsNullOrEmpty(connString))
         {
