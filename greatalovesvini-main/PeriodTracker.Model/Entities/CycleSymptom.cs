@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using PeriodTracker.Model.Entities;
+using System;
 
 public class CycleSymptom
 {

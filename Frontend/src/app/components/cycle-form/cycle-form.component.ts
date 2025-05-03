@@ -82,7 +82,6 @@ export class CycleFormComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Build the Reactive Form
     this.cycleForm = this.fb.group({
       cycleId:   [0],
       startDate: [null, Validators.required],
@@ -91,7 +90,6 @@ export class CycleFormComponent implements OnInit {
       symptoms:  this.fb.array([])
     }, { validators: this.dateRangeValidator });
 
-    // Load all symptoms and initialize FormArray
     this.symptomService.getAllSymptoms().subscribe({
       next: (syms: Symptom[]) => {
         this.allSymptoms = syms;
@@ -102,7 +100,6 @@ export class CycleFormComponent implements OnInit {
             selected:  [false],
             intensity: [{ value: 1, disabled: true }, [Validators.min(1), Validators.max(5)]]
           });
-          // Enable/disable intensity based on selection
           group.get('selected')!.valueChanges.subscribe(sel => {
             const ctrl = group.get('intensity')!;
             sel ? ctrl.enable({ emitEvent: false }) : ctrl.disable({ emitEvent: false });
@@ -114,24 +111,20 @@ export class CycleFormComponent implements OnInit {
     });
   }
 
-  // Convenience getter for the symptoms FormArray
   get symptoms(): FormArray {
     return this.cycleForm.get('symptoms') as FormArray;
   }
 
-  // Validator to ensure endDate >= startDate
   private dateRangeValidator(group: FormGroup) {
     const start = group.get('startDate')!.value;
     const end   = group.get('endDate')!.value;
     return start && end && end < start ? { dateRange: true } : null;
   }
 
-  // Navigate back
   cancel(): void {
     this.location.back();
   }
 
-  // Open confirmation dialog before delete
   openDeleteConfirmation(): void {
     this.dialog.open(this.deleteDialog)
       .afterClosed()
@@ -140,18 +133,13 @@ export class CycleFormComponent implements OnInit {
       });
   }
 
-  // Handle form submission
   saveCycle(): void {
     if (this.cycleForm.invalid) return;
     this.isLoading = true;
 
     const userId = this.auth.getUserId()!;
     const { cycleId, startDate, endDate, notes } = this.cycleForm.value;
-
-    // Calculate duration in days
-    const duration = Math.ceil(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
     const cycle: Periodcycle = {
       cycleId,
@@ -169,7 +157,9 @@ export class CycleFormComponent implements OnInit {
 
     op$.subscribe({
       next: (saved: Periodcycle) => {
-        // Build CycleSymptom links
+        // Use original form startDate for symptom date
+        const symptomDate = startDate as Date;
+
         const links: CycleSymptom[] = this.symptoms.controls
           .map(ctrl => ctrl.value)
           .filter((c: any) => c.selected)
@@ -178,11 +168,10 @@ export class CycleFormComponent implements OnInit {
             cycleId:        saved.cycleId,
             symptomId:      c.symptomId,
             intensity:      c.intensity,
-            date:           saved.startDate,
+            date:           symptomDate,
             createdAt:      new Date()
           }));
 
-        // If editing, clear existing links first
         const clear$ = this.isEditMode
           ? this.cycleSymptomService.deleteCycleSymptomsByCycleId(saved.cycleId)
           : of(undefined);
@@ -193,27 +182,34 @@ export class CycleFormComponent implements OnInit {
           } else {
             let done = 0;
             links.forEach(link =>
-              this.cycleSymptomService.createCycleSymptom(link).subscribe(() => {
-                if (++done === links.length) this.finishSave();
-              })
+              this.cycleSymptomService.createCycleSymptom(link)
+                .subscribe({
+                  next: () => {
+                    if (++done === links.length) this.finishSave();
+                  },
+                  error: (err: { error: { title: string; }; }) => {
+                    console.error('CycleSymptom validation error', err.error);
+                    this.errorMessage = err.error.title || 'Error saving symptoms';
+                    this.isLoading = false;
+                  }
+                })
             );
           }
         });
       },
-      error: () => {
-        this.errorMessage = 'Save failed';
+      error: err => {
+        console.error('PeriodCycle error', err.error);
+        this.errorMessage = err.error.title || 'Error saving cycle';
         this.isLoading = false;
       }
     });
   }
 
-  // Show snackbar and navigate back
   private finishSave(): void {
     this.snack.open('Cycle saved', 'Close', { duration: 3000 });
     this.location.back();
   }
 
-  // Delete a cycle
   private deleteCycle(): void {
     const id = this.cycleForm.value.cycleId;
     this.periodCycleService.deleteCycle(id, this.auth.getUserId()!)
@@ -222,7 +218,8 @@ export class CycleFormComponent implements OnInit {
           this.snack.open('Deleted', 'Close', { duration: 2000 });
           this.location.back();
         },
-        error: () => {
+        error: err => {
+          console.error('Delete cycle error', err.error);
           this.errorMessage = 'Delete failed';
           this.isLoading = false;
         }
