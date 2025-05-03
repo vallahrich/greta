@@ -18,6 +18,7 @@ export interface CycleSymptom {
   intensity:      number;
   date:           string;
   createdAt:      string;
+  symptom?:       Symptom; 
 }
 
 @Injectable({ providedIn: 'root' })

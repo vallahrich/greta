@@ -77,6 +77,7 @@ export class ProfileComponent implements OnInit {
       name: ['', Validators.required],
       email: [{ value: '', disabled: true }]
     });
+    
     this.passwordForm = this.fb.group({
       newPassword: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', Validators.required]
@@ -146,23 +147,14 @@ export class ProfileComponent implements OnInit {
   }
 
   updatePassword(): void {
-    // now also guard against missing userId
     if (this.passwordForm.invalid || !this.user || this.user.userId == null) return;
     this.isPasswordUpdating = true;
     const newPwd = this.passwordForm.value.newPassword;
 
-    // at this point TS knows this.user.userId is a number
-    const updatedUser: User = {
-      ...this.user,
-      userId: this.user.userId, // OK: number
-      pw: newPwd
-    };
-
-    this.userService.updateUser(updatedUser).subscribe({
-      next: (saved) => {
+    this.userService.updatePassword(this.user.userId, newPwd).subscribe({
+      next: () => {
         this.isPasswordUpdating = false;
         this.changePasswordMode = false;
-        this.user = saved;
         this.passwordForm.reset();
         this.successMessage = 'Password updated successfully';
         setTimeout(() => this.successMessage = '', 3000);
@@ -170,6 +162,7 @@ export class ProfileComponent implements OnInit {
       error: (err) => {
         this.isPasswordUpdating = false;
         this.errorMessage = err.message || 'Failed to update password';
+        console.error('Password update error:', err);
       }
     });
   }

@@ -20,10 +20,6 @@ public class CycleSymptom
     public int Intensity { get; set; }
     public DateTime Date { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
-
-    [JsonIgnore]
     public PeriodCycle PeriodCycle { get; set; }
-    
-    [JsonIgnore]
     public Symptom Symptom { get; set; }
 }

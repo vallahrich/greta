@@ -11,10 +11,13 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 
 import { PeriodCycleService } from '../../services/periodcycle.service';
-import { CycleSymptomService } from '../../services/cyclesymptom.service';
+import { CycleSymptomService, CycleSymptom } from '../../services/cyclesymptom.service';
 import { AuthService } from '../../services/auth.service';
 import { Periodcycle } from '../../models/Periodcycle';
-import { Symptom } from '../../models/Symptom';
+
+interface CycleWithSymptoms extends Periodcycle {
+  symptoms: { name: string; intensity: number }[];
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -33,7 +36,7 @@ import { Symptom } from '../../models/Symptom';
   styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent implements OnInit {
-  recentCycles: (Periodcycle & { symptoms: Symptom[] })[] = [];
+  recentCycles: CycleWithSymptoms[] = [];
   isLoading = false;
   errorMessage = '';
   averageCycleLength?: number;
@@ -61,11 +64,18 @@ export class DashboardComponent implements OnInit {
 
       // fetch symptoms for each cycle in parallel
       const withSymptoms = await Promise.all(
-        cycles.map(async (c): Promise<Periodcycle & { symptoms: Symptom[] }> => {
-          const syms: Symptom[] = await firstValueFrom(
-            this.cycleSymptomService.getSymptomsByCycleId(c.cycleId)
+        cycles.map(async (cycle): Promise<CycleWithSymptoms> => {
+          const cycleSymptoms: CycleSymptom[] = await firstValueFrom(
+            this.cycleSymptomService.getCycleSymptomsByCycleId(cycle.cycleId)
           );
-          return { ...c, symptoms: syms };
+          
+          // Transform cycle symptoms to include name and intensity
+          const symptoms = cycleSymptoms.map(cs => ({
+            name: cs.symptom?.name || 'Unknown',
+            intensity: cs.intensity
+          }));
+          
+          return { ...cycle, symptoms };
         })
       );
 
@@ -85,7 +95,7 @@ export class DashboardComponent implements OnInit {
       return;
     }
   
-    // Compute each period’s bleeding length (end – start + 1 day)
+    // Compute each period's bleeding length (end – start + 1 day)
     const periodLengths = cycles.map(c => {
       const start = new Date(c.startDate).valueOf();
       const end   = new Date(c.endDate).valueOf();

@@ -53,14 +53,12 @@
              class="month-day" 
              [ngClass]="{
                'active': day.active, 
-               'selected': day.selected, 
                'empty': day.day === null,
                'period': day.isPeriod,
                'fertile': day.isFertile,
                'ovulation': day.isOvulation,
                'today': day.isToday
-             }"
-             (click)="selectDate(day)">
+             }">
           <div class="day-content" *ngIf="day.day !== null">
             <span class="day-number">{{day.day}}</span>
           </div>
@@ -82,32 +80,6 @@
         <div class="legend-circle ovulation"></div>
         <div class="legend-text">Ovulation Day</div>
       </div>
-    </div>
-
-    <!-- Selected day details - shown when a day is selected -->
-    <div *ngIf="selectedDay && selectedDay.day !== null" class="day-details">
-      <mat-card>
-        <mat-card-header>
-          <mat-card-title>{{getSelectedDateFormatted()}}</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div *ngIf="selectedDay.isPeriod" class="status-tag period">Period Day</div>
-          <div *ngIf="selectedDay.isFertile" class="status-tag fertile">Fertile Day</div>
-          <div *ngIf="selectedDay.isOvulation" class="status-tag ovulation">Ovulation Day</div>
-          
-          <div *ngIf="!selectedDay.isPeriod && !selectedDay.isFertile && !selectedDay.isOvulation" class="no-data">
-            No cycle data for this day.
-          </div>
-        </mat-card-content>
-        <mat-card-actions>
-          <button mat-button (click)="addCycleForDate()">
-            <mat-icon>add</mat-icon> Add Cycle
-          </button>
-          <button *ngIf="selectedDay.cycleId" mat-button [routerLink]="['/cycle/edit', selectedDay.cycleId]">
-            <mat-icon>edit</mat-icon> Edit Cycle
-          </button>
-        </mat-card-actions>
-      </mat-card>
     </div>
   </div>
 

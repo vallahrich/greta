@@ -1,3 +1,4 @@
+// Updated calendar-view.component.ts (removing interaction functionality)
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -15,7 +16,6 @@ interface CalendarDay {
   day: number | null;
   date: Date | null;
   active: boolean;
-  selected: boolean;
   isPeriod: boolean;
   isFertile: boolean;
   isOvulation: boolean;
@@ -45,7 +45,6 @@ export class CalendarViewComponent implements OnInit {
   
   weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   monthDays: CalendarDay[] = [];
-  selectedDay: CalendarDay | null = null;
   
   userId: number | null = null;
   cycleData: Periodcycle[] = [];
@@ -84,7 +83,6 @@ export class CalendarViewComponent implements OnInit {
     
     this.isLoading = true;
     this.errorMessage = '';
-    this.selectedDay = null;
     
     this.periodCycleService.getCyclesByUserId(this.userId).subscribe({
       next: (cycles) => {
@@ -121,7 +119,6 @@ export class CalendarViewComponent implements OnInit {
         day: null,
         date: null,
         active: false,
-        selected: false,
         isPeriod: false,
         isFertile: false,
         isOvulation: false,
@@ -141,7 +138,6 @@ export class CalendarViewComponent implements OnInit {
         day: day,
         date: date,
         active: periodInfo.isPeriod || periodInfo.isFertile || periodInfo.isOvulation,
-        selected: false,
         isPeriod: periodInfo.isPeriod,
         isFertile: periodInfo.isFertile,
         isOvulation: periodInfo.isOvulation,
@@ -159,7 +155,6 @@ export class CalendarViewComponent implements OnInit {
         day: null,
         date: null,
         active: false,
-        selected: false,
         isPeriod: false,
         isFertile: false,
         isOvulation: false,
@@ -216,41 +211,6 @@ export class CalendarViewComponent implements OnInit {
     return date1.getFullYear() === date2.getFullYear() &&
            date1.getMonth() === date2.getMonth() &&
            date1.getDate() === date2.getDate();
-  }
-
-  selectDate(day: CalendarDay): void {
-    if (day.day === null || day.date === null) {
-      return;
-    }
-    
-    this.monthDays.forEach(item => {
-      item.selected = false;
-    });
-    
-    day.selected = true;
-    this.selectedDay = day;
-  }
-
-  getSelectedDateFormatted(): string {
-    if (!this.selectedDay || !this.selectedDay.date) {
-      return '';
-    }
-    
-    return this.selectedDay.date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }
-  
-  addCycleForDate(): void {
-    if (!this.selectedDay || !this.selectedDay.date) {
-      return;
-    }
-    
-    const dateStr = this.selectedDay.date.toISOString().split('T')[0];
-    this.router.navigate(['/cycle/add'], { queryParams: { date: dateStr } });
   }
 
   navigateMonth(direction: number): void {

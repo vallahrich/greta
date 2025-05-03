@@ -2,7 +2,9 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  height: 100vh; /* Set fixed height to enable scrolling */
   background-color: #f5f5f5;
+  overflow: hidden; /* Prevent outer scrolling */
 }
 
 /* Header styles */
@@ -14,12 +16,18 @@
   align-items: center;
   padding: 16px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .dashboard-header h1 {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 500;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
 }
 
 /* Main content area */
@@ -30,13 +38,17 @@
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
+  overflow-y: auto; /* Enable vertical scrolling */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
 }
 
 /* Summary card */
 .summary-card {
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: white;
   border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .cycle-summary {
@@ -75,37 +87,10 @@
   color: #666;
 }
 
-.prediction-info {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.next-period {
-  text-align: center;
-  padding: 16px;
-  background-color: #fff5f5;
-  border-radius: 8px;
-  min-width: 200px;
-}
-
-.next-period h3 {
-  margin: 0 0 8px 0;
-  color: #ff5c5c;
-  font-size: 18px;
-}
-
-.next-period .date {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 0;
-  color: #333;
-}
-
 /* Cycles section */
 .cycles-section {
   margin-top: 20px;
+  padding-bottom: 20px; /* Add padding to ensure content isn't hidden behind nav */
 }
 
 .section-header {
@@ -142,6 +127,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 16px;
 }
 
 .date-range {
@@ -178,10 +164,75 @@
   font-size: 12px;
 }
 
+/* Symptoms section */
+.symptoms-section {
+  padding: 0 16px 16px 16px;
+}
+
+.symptoms-header {
+  margin: 0 0 12px 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.symptoms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.symptom-item {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.symptom-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.intensity-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.intensity-label {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.intensity-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.intensity-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid #ff9a9e;
+  background-color: transparent;
+}
+
+.intensity-dot.filled {
+  background-color: #ff9a9e;
+}
+
+.intensity-value {
+  font-size: 0.9rem;
+  color: #666;
+}
+
 .cycle-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 8px;
+  padding: 8px 16px;
 }
 
 /* Empty state */
@@ -218,13 +269,13 @@
   background-color: white;
   padding: 12px;
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0; /* Prevent navigation from shrinking */
 }
 
 .dashboard-nav a {
   text-decoration: none;
   color: inherit;
   display: flex;
-  flex-direction: column;
   align-items: center;
   padding: 8px 16px;
 }
@@ -236,11 +287,23 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .dashboard-content {
+    padding: 12px;
+  }
+  
   .cycle-summary {
     flex-direction: column;
   }
   
   .cycles-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .cycles-section {
+    padding-bottom: 30px; /* Extra padding on mobile */
+  }
+  
+  .symptoms-grid {
     grid-template-columns: 1fr;
   }
 }
