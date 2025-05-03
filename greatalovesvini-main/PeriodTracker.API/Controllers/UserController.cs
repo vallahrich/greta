@@ -18,7 +18,6 @@ namespace PeriodTracker.API.Controllers
 
         // GET: api/user
         [HttpGet]
-        [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<IEnumerable<User>> GetUsers()
         {
@@ -29,14 +28,12 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UserController] Error in GetUsers: {ex.Message}");
                 return StatusCode(500, "An error occurred while retrieving users");
             }
         }
 
         // GET: api/user/{id}
         [HttpGet("{id}")]
-        [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<User> GetUserById(int id)
@@ -52,20 +49,27 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UserController] Error in GetUserById: {ex.Message}");
                 return StatusCode(500, "An error occurred while retrieving user");
             }
         }
 
         // GET: api/user/byemail/{email}
         [HttpGet("byemail/{email}")]
-        [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<User> GetUserByEmail(string email)
         {
             try
             {
+                // Get the authenticated user's email from context
+                var authenticatedEmail = HttpContext.Items["UserEmail"]?.ToString();
+                
+                // Only allow users to get their own information
+                if (authenticatedEmail != email)
+                {
+                    return Forbid("You can only access your own information");
+                }
+                
                 var user = _userRepository.GetUserByEmail(email);
                 if (user == null)
                 {
@@ -75,7 +79,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UserController] ERROR in GetUserByEmail: {ex.Message}");
                 return StatusCode(500, "An error occurred while retrieving user by email");
             }
         }
@@ -105,14 +108,12 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UserController] Error in CreateUser: {ex.Message}");
                 return StatusCode(500, "An error occurred while creating user");
             }
         }
 
         // PUT: api/user
         [HttpPut]
-        [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -146,14 +147,12 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UserController] Error in UpdateUser: {ex.Message}");
                 return StatusCode(500, "An error occurred while updating user");
             }
         }
 
         // PUT: api/user/password
         [HttpPut("password")]
-        [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -177,14 +176,12 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UserController] Error in UpdatePassword: {ex.Message}");
                 return StatusCode(500, "An error occurred while updating password");
             }
         }
 
         // DELETE: api/user/{id}
         [HttpDelete("{id}")]
-        [Authorize]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult DeleteUser(int id)
@@ -207,7 +204,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UserController] Error in DeleteUser: {ex.Message}");
                 return StatusCode(500, "An error occurred while deleting user");
             }
         }
@@ -225,7 +221,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UserController] Error in EmailExists: {ex.Message}");
                 return StatusCode(500, "An error occurred while checking if email exists");
             }
         }

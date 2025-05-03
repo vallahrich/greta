@@ -1,13 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using PeriodTracker.Model.Entities;
 using PeriodTracker.Model.Repositories;
-using Microsoft.AspNetCore.Authorization;
 
 namespace PeriodTracker.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class SymptomController : ControllerBase
     {
         private readonly SymptomRepository _symptomRepository;
@@ -29,7 +27,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[SymptomController] Error in GetAllSymptoms: {ex.Message}");
                 return StatusCode(500, "An error occurred while retrieving symptoms");
             }
         }
@@ -52,7 +49,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[SymptomController] Error in GetSymptomById: {ex.Message}");
                 return StatusCode(500, "An error occurred while retrieving symptom");
             }
         }
@@ -80,7 +76,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[SymptomController] Error in CreateSymptom: {ex.Message}");
                 return StatusCode(500, "An error occurred while creating symptom");
             }
         }
@@ -116,7 +111,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[SymptomController] Error in UpdateSymptom: {ex.Message}");
                 return StatusCode(500, "An error occurred while updating symptom");
             }
         }
@@ -147,7 +141,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[SymptomController] Error in DeleteSymptom: {ex.Message}");
                 return StatusCode(500, "An error occurred while deleting symptom");
             }
         }

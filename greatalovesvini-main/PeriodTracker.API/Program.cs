@@ -1,13 +1,6 @@
 using PeriodTracker.API.Middleware;
 using PeriodTracker.Model.Repositories;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.Http;
-using System;
-using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,12 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // This will automatically convert PascalCase properties to camelCase in JSON
-        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Keep original casing
     });
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -35,21 +25,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularApp", builder =>
     {
-        builder.WithOrigins("http://localhost:4200") // Angular app's default URL
+        builder.WithOrigins("http://localhost:4200")
                .AllowAnyHeader()
                .AllowAnyMethod()
-               .AllowCredentials()  // Allow credentials
-               .WithExposedHeaders("Authorization");
+               .AllowCredentials();
     });
-});
-
-// Configure authorization policies
-builder.Services.AddAuthorization(options =>
-{
-    // Default policy - requires authenticated user
-    options.DefaultPolicy = new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .Build();
 });
 
 var app = builder.Build();
@@ -59,44 +39,15 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    
-    // Add detailed exception handling in development
-    app.UseDeveloperExceptionPage();
-}
-else
-{
-    // Use more production-appropriate error handling
-    app.UseExceptionHandler("/error");
-    app.UseHsts();
 }
 
-// Enable CORS - must come before authentication middleware
+// Enable CORS
 app.UseCors("AllowAngularApp");
 
-// Add Basic Authentication middleware before Authorization
+// Add Basic Authentication middleware
 app.UseBasicAuthenticationMiddleware();
-
-// Use authorization middleware
-app.UseAuthorization();
 
 // Map API controllers
 app.MapControllers();
 
-// Add this to ensure unauthorized requests are properly handled
-app.Use(async (context, next) =>
-{
-    await next();
-    
-    // If we get here with a 401, it means the request wasn't handled
-    // by an endpoint - return a proper 401 response
-    if (context.Response.StatusCode == 401 && 
-        !context.Response.HasStarted && 
-        !context.Request.Path.StartsWithSegments("/error"))
-    {
-        await context.Response.WriteAsJsonAsync(new { message = "Authentication required" });
-    }
-});
-
-// Start the application
-Console.WriteLine("Starting application...");
 app.Run();

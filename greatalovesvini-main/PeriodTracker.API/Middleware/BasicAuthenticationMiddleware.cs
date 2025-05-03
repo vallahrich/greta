@@ -20,47 +20,21 @@ namespace PeriodTracker.API.Middleware
         {
             try
             {
-                // Get the request path and method
                 var path = context.Request.Path.ToString().ToLower();
-                var method = context.Request.Method;
-                
-                Console.WriteLine($"[AUTH] Processing request: {method} {path}");
                 
                 // Check for [AllowAnonymous] attribute on the endpoint
                 var endpoint = context.GetEndpoint();
                 if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() != null)
                 {
-                    Console.WriteLine($"[AUTH] Endpoint {path} has [AllowAnonymous], bypassing auth");
                     await _next(context);
                     return;
                 }
 
-                // Check for specific exempt paths that don't require authentication
+                // Check for specific exempt paths (login and register)
                 if (path.EndsWith("/api/auth/login") || 
                     path.EndsWith("/api/auth/register") || 
                     path.Contains("/api/user/exists/"))
                 {
-                    Console.WriteLine($"[AUTH] Path {path} is exempt from auth, bypassing");
-                    await _next(context);
-                    return;
-                }
-
-                // TEMPORARY: Add specific bypasses until we fix auth fully
-                if (path.Contains("/api/user/byemail/") || 
-                    (method == "PUT" && path == "/api/user") ||
-                    (method == "PUT" && path.Contains("/api/user/password")))
-                {
-                    Console.WriteLine($"[AUTH] TEMPORARY BYPASS: Allowing {method} {path}");
-                    
-                    // Add basic user context for controller access based on URL for /byemail/ endpoint
-                    if (path.Contains("/api/user/byemail/"))
-                    {
-                        var pathParts = path.Split("/");
-                        var pathEmail = pathParts[pathParts.Length - 1];
-                        context.Items["UserEmail"] = pathEmail;
-                        Console.WriteLine($"[AUTH] Setting UserEmail={pathEmail} for controller use");
-                    }
-                    
                     await _next(context);
                     return;
                 }
@@ -71,7 +45,6 @@ namespace PeriodTracker.API.Middleware
                 // If no Authorization header is present, return 401 Unauthorized
                 if (string.IsNullOrEmpty(authHeader))
                 {
-                    Console.WriteLine("[AUTH] No Authorization header found");
                     context.Response.StatusCode = 401;
                     await context.Response.WriteAsync("Authorization header is required");
                     return;
@@ -80,7 +53,6 @@ namespace PeriodTracker.API.Middleware
                 // Check if it's a valid Basic Auth header
                 if (!authHeader.StartsWith("Basic "))
                 {
-                    Console.WriteLine("[AUTH] Invalid Authorization header format (not Basic)");
                     context.Response.StatusCode = 401;
                     await context.Response.WriteAsync("Invalid Authorization header format");
                     return;
@@ -94,9 +66,8 @@ namespace PeriodTracker.API.Middleware
                 {
                     bytes = Convert.FromBase64String(encodedCredentials);
                 }
-                catch (FormatException ex)
+                catch (FormatException)
                 {
-                    Console.WriteLine($"[AUTH] Failed to decode Base64 credentials: {ex.Message}");
                     context.Response.StatusCode = 401;
                     await context.Response.WriteAsync("Invalid Base64 encoding in Authorization header");
                     return;
@@ -108,7 +79,6 @@ namespace PeriodTracker.API.Middleware
                 var credentialParts = credentials.Split(':');
                 if (credentialParts.Length != 2)
                 {
-                    Console.WriteLine("[AUTH] Invalid credentials format - wrong number of parts");
                     context.Response.StatusCode = 401;
                     await context.Response.WriteAsync("Invalid credentials format");
                     return;
@@ -117,29 +87,41 @@ namespace PeriodTracker.API.Middleware
                 var userEmail = credentialParts[0]; 
                 var userPassword = credentialParts[1];
                 
-                // For simplicity, accept any well-formed credentials until we fix the DB issues
-                Console.WriteLine($"[AUTH] Authenticated: {userEmail}");
+                // Validate against database
+                using (var scope = _serviceProvider.CreateScope())
+                {
+                    var userRepository = scope.ServiceProvider.GetRequiredService<UserRepository>();
+                    
+                    // Check if test user
+                    if (userEmail == "john.doe" && userPassword == "VerySecret!")
+                    {
+                        context.Items["UserEmail"] = userEmail;
+                        context.Items["UserId"] = 1; // Test user ID
+                        await _next(context);
+                        return;
+                    }
+                    
+                    // Validate against database
+                    var user = userRepository.GetUserByEmail(userEmail);
+                    if (user != null && user.Pw == userPassword)
+                    {
+                        // Store user information in context for controllers to use
+                        context.Items["UserEmail"] = userEmail;
+                        context.Items["UserId"] = user.UserId;
+                        
+                        await _next(context);
+                        return;
+                    }
+                }
                 
-                // Store user information in context for controllers to use
-                context.Items["UserEmail"] = userEmail;
-                
-                // Proceed to the next middleware
-                await _next(context);
+                // If we get here, credentials are invalid
+                context.Response.StatusCode = 401;
+                await context.Response.WriteAsync("Invalid credentials");
+                return;
             }
             catch (Exception ex)
             {
-                // Log the exception
-                Console.WriteLine($"[AUTH] CRITICAL ERROR: {ex.Message}");
-                Console.WriteLine($"[AUTH] Exception type: {ex.GetType().Name}");
-                Console.WriteLine($"[AUTH] Stack trace: {ex.StackTrace}");
-                
-                if (ex.InnerException != null)
-                {
-                    Console.WriteLine($"[AUTH] Inner exception: {ex.InnerException.Message}");
-                    Console.WriteLine($"[AUTH] Inner stack trace: {ex.InnerException.StackTrace}");
-                }
-                
-                // Return a 500 error response
+                Console.WriteLine($"[AUTH] Error: {ex.Message}");
                 context.Response.StatusCode = 500;
                 await context.Response.WriteAsync("An internal server error occurred during authentication");
             }

@@ -1,13 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using PeriodTracker.Model.Entities;
 using PeriodTracker.Model.Repositories;
-using Microsoft.AspNetCore.Authorization;
 
 namespace PeriodTracker.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class CycleSymptomController : ControllerBase
     {
         private readonly CycleSymptomRepository _cycleSymptomRepository;
@@ -42,7 +40,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[CycleSymptomController] Error in GetCycleSymptomById: {ex.Message}");
                 return StatusCode(500, "An error occurred while retrieving cycle symptom");
             }
         }
@@ -67,7 +64,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[CycleSymptomController] Error in GetCycleSymptomsByCycleId: {ex.Message}");
                 return StatusCode(500, "An error occurred while retrieving cycle symptoms");
             }
         }
@@ -117,7 +113,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[CycleSymptomController] Error in CreateCycleSymptom: {ex.Message}");
                 return StatusCode(500, "An error occurred while creating cycle symptom");
             }
         }
@@ -167,7 +162,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[CycleSymptomController] Error in UpdateCycleSymptom: {ex.Message}");
                 return StatusCode(500, "An error occurred while updating cycle symptom");
             }
         }
@@ -198,7 +192,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[CycleSymptomController] Error in DeleteCycleSymptom: {ex.Message}");
                 return StatusCode(500, "An error occurred while deleting cycle symptom");
             }
         }
@@ -229,7 +222,6 @@ namespace PeriodTracker.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[CycleSymptomController] Error in DeleteCycleSymptomsByCycleId: {ex.Message}");
                 return StatusCode(500, "An error occurred while deleting cycle symptoms");
             }
         }

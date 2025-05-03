@@ -20,7 +20,7 @@ namespace PeriodTracker.Model.Repositories
                 var cmd = dbConn.CreateCommand();
                 cmd.CommandText = "SELECT * FROM Users WHERE user_id = @id";
                 cmd.Parameters.Add("@id", NpgsqlDbType.Integer).Value = id;
-                
+
                 var data = GetData(dbConn, cmd);
                 if (data != null && data.Read())
                 {
@@ -51,15 +51,16 @@ namespace PeriodTracker.Model.Repositories
             NpgsqlConnection dbConn = null;
             try
             {
+                Console.WriteLine($"[UserRepository] Getting user by email: {email}");
                 dbConn = new NpgsqlConnection(ConnectionString);
                 var cmd = dbConn.CreateCommand();
                 cmd.CommandText = "SELECT * FROM Users WHERE email = @email";
                 cmd.Parameters.Add("@email", NpgsqlDbType.Text).Value = email;
-                
+
                 var data = GetData(dbConn, cmd);
                 if (data != null && data.Read())
                 {
-                    return new User
+                    var user = new User
                     {
                         UserId = Convert.ToInt32(data["user_id"]),
                         Name = data["name"].ToString(),
@@ -67,13 +68,16 @@ namespace PeriodTracker.Model.Repositories
                         Pw = data["pw"].ToString(),
                         CreatedAt = Convert.ToDateTime(data["created_at"])
                     };
+                    Console.WriteLine($"[UserRepository] User found: ID={user.UserId}, Email={user.Email}");
+                    return user;
                 }
+                Console.WriteLine($"[UserRepository] No user found with email: {email}");
                 return null;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UserRepository] Error getting user by email {email}: {ex.Message}");
-                return null;
+                Console.WriteLine($"[UserRepository] ERROR getting user by email {email}: {ex.Message}");
+                throw; // Re-throw to let the controller handle it
             }
             finally
             {
@@ -90,7 +94,7 @@ namespace PeriodTracker.Model.Repositories
                 dbConn = new NpgsqlConnection(ConnectionString);
                 var cmd = dbConn.CreateCommand();
                 cmd.CommandText = "SELECT * FROM Users";
-                
+
                 var data = GetData(dbConn, cmd);
                 if (data != null)
                 {
@@ -130,16 +134,16 @@ namespace PeriodTracker.Model.Repositories
                     INSERT INTO Users (name, email, pw, created_at)
                     VALUES (@name, @email, @pw, @createdAt)
                     RETURNING user_id";
-                
+
                 cmd.Parameters.AddWithValue("@name", NpgsqlDbType.Varchar, user.Name);
                 cmd.Parameters.AddWithValue("@email", NpgsqlDbType.Varchar, user.Email);
                 cmd.Parameters.AddWithValue("@pw", NpgsqlDbType.Varchar, user.Pw);
                 cmd.Parameters.AddWithValue("@createdAt", NpgsqlDbType.TimestampTz, DateTime.UtcNow);
-                
+
                 dbConn.Open();
                 var userId = Convert.ToInt32(cmd.ExecuteScalar());
                 user.UserId = userId;
-                
+
                 return true;
             }
             catch (Exception ex)
@@ -165,11 +169,11 @@ namespace PeriodTracker.Model.Repositories
                     name = @name,
                     email = @email
                     WHERE user_id = @userId";
-                
+
                 cmd.Parameters.AddWithValue("@name", NpgsqlDbType.Varchar, user.Name);
                 cmd.Parameters.AddWithValue("@email", NpgsqlDbType.Varchar, user.Email);
                 cmd.Parameters.AddWithValue("@userId", NpgsqlDbType.Integer, user.UserId);
-                
+
                 return UpdateData(dbConn, cmd);
             }
             catch (Exception ex)
@@ -194,10 +198,10 @@ namespace PeriodTracker.Model.Repositories
                     UPDATE Users SET
                     pw = @pw
                     WHERE user_id = @userId";
-                
+
                 cmd.Parameters.AddWithValue("@pw", NpgsqlDbType.Varchar, password);
                 cmd.Parameters.AddWithValue("@userId", NpgsqlDbType.Integer, userId);
-                
+
                 return UpdateData(dbConn, cmd);
             }
             catch (Exception ex)
@@ -220,7 +224,7 @@ namespace PeriodTracker.Model.Repositories
                 var cmd = dbConn.CreateCommand();
                 cmd.CommandText = "DELETE FROM Users WHERE user_id = @id";
                 cmd.Parameters.AddWithValue("@id", NpgsqlDbType.Integer, id);
-                
+
                 return DeleteData(dbConn, cmd);
             }
             catch (Exception ex)
@@ -243,7 +247,7 @@ namespace PeriodTracker.Model.Repositories
                 var cmd = dbConn.CreateCommand();
                 cmd.CommandText = "SELECT COUNT(*) FROM Users WHERE email = @email";
                 cmd.Parameters.AddWithValue("@email", NpgsqlDbType.Varchar, email);
-                
+
                 dbConn.Open();
                 var count = Convert.ToInt32(cmd.ExecuteScalar());
                 return count > 0;

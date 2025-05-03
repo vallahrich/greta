@@ -133,8 +133,6 @@ export class ProfileComponent implements OnInit {
       return;
     }
     
-    // Log the auth headers for debugging
-    console.log('Auth headers:', this.authService.getAuthHeaders());
     
     this.userService.getUserByEmail(email).subscribe({
       next: (data) => {

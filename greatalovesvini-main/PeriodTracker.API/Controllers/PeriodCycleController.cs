@@ -1,13 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using PeriodTracker.Model.Entities;
 using PeriodTracker.Model.Repositories;
-using Microsoft.AspNetCore.Authorization;
 
 namespace PeriodTracker.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class PeriodCycleController : ControllerBase
     {
         private readonly PeriodCycleRepository _periodCycleRepository;
@@ -45,14 +43,39 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<IEnumerable<PeriodCycle>> GetCyclesByUserId(int userId)
         {
-            var user = _userRepository.GetUserById(userId);
-            if (user == null)
+            try
             {
-                return NotFound($"User with ID {userId} not found");
+                // Get the authenticated user's ID from context
+                var authenticatedUserId = HttpContext.Items["UserId"];
+                
+                // Check if UserId is in context
+                if (authenticatedUserId == null)
+                {
+                    return StatusCode(500, "Authentication context error");
+                }
+                
+                // Convert to int and compare
+                int authUserIdInt = Convert.ToInt32(authenticatedUserId);
+                
+                // Only allow users to get their own cycles
+                if (authUserIdInt != userId)
+                {
+                    return Forbid("You can only access your own cycles");
+                }
+                
+                var user = _userRepository.GetUserById(userId);
+                if (user == null)
+                {
+                    return NotFound($"User with ID {userId} not found");
+                }
+                
+                var cycles = _periodCycleRepository.GetCyclesByUserId(userId);
+                return Ok(cycles);
             }
-            
-            var cycles = _periodCycleRepository.GetCyclesByUserId(userId);
-            return Ok(cycles);
+            catch (Exception ex)
+            {
+                return StatusCode(500, "An error occurred while retrieving cycles");
+            }
         }
 
         // POST: api/periodcycle

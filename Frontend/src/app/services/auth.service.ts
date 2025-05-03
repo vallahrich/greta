@@ -1,4 +1,3 @@
-// src/app/services/auth.service.ts
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, catchError, throwError, tap, BehaviorSubject } from 'rxjs';
@@ -60,10 +59,6 @@ export class AuthService {
             if (response.userId) localStorage.setItem('userId', response.userId.toString());
             if (response.name) localStorage.setItem('userName', response.name);
             
-            // Set token expiration time (24 hours from now)
-            const expirationTime = new Date().getTime() + (24 * 60 * 60 * 1000);
-            localStorage.setItem('tokenExpiration', expirationTime.toString());
-            
             // Update authentication state
             this.authStateSubject.next(true);
           }
@@ -98,13 +93,9 @@ export class AuthService {
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
-    localStorage.removeItem('tokenExpiration');
     
     // Update authentication state
     this.authStateSubject.next(false);
-    
-    // Optional: Call logout endpoint if server-side session tracking is needed
-    // this.http.post(`${this.baseUrl}/logout`, {}).subscribe();
     
     // Navigate to login page
     this.router.navigate(['/login']);
@@ -114,22 +105,7 @@ export class AuthService {
    * Check if the user is authenticated
    */
   get isAuthenticated(): boolean {
-    const authenticated = localStorage.getItem('isAuthenticated') === 'true';
-    
-    // Also check if token has expired
-    if (authenticated) {
-      const expiration = localStorage.getItem('tokenExpiration');
-      if (expiration) {
-        const expirationTime = parseInt(expiration, 10);
-        if (new Date().getTime() > expirationTime) {
-          // Token has expired, clean up and return false
-          this.cleanupExpiredToken();
-          return false;
-        }
-      }
-    }
-    
-    return authenticated;
+    return localStorage.getItem('isAuthenticated') === 'true';
   }
   
   /**
@@ -172,42 +148,9 @@ export class AuthService {
    * Check if token has expired and logout if it has
    */
   private checkTokenExpiration(): void {
-    if (this.isAuthenticated) {
-      const expiration = localStorage.getItem('tokenExpiration');
-      if (expiration) {
-        const expirationTime = parseInt(expiration, 10);
-        
-        if (new Date().getTime() > expirationTime) {
-          this.cleanupExpiredToken();
-        } else {
-          // Token is still valid, schedule a check for when it expires
-          const timeUntilExpiration = expirationTime - new Date().getTime();
-          setTimeout(() => this.checkTokenExpiration(), timeUntilExpiration);
-        }
-      }
-    }
-  }
-  
-  /**
-   * Clean up expired token and notify about logout
-   */
-  private cleanupExpiredToken(): void {
-    // Clean up localStorage
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('authHeader');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('tokenExpiration');
-    
-    // Update authentication state
-    this.authStateSubject.next(false);
-    
-    // Redirect to login page if not already there
-    if (!this.router.url.includes('/login')) {
-      this.router.navigate(['/login'], { 
-        queryParams: { expired: true }
-      });
+    // Basic auth doesn't expire, but check if authenticated
+    if (!this.isAuthenticated) {
+      this.authStateSubject.next(false);
     }
   }
 }
