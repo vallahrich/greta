@@ -1,15 +1,20 @@
+// src/app/components/dashboard/dashboard.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
+import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { firstValueFrom } from 'rxjs';
 
-import { AuthService } from '../../services/auth.service';
 import { PeriodCycleService } from '../../services/periodcycle.service';
+import { CycleSymptomService } from '../../services/cyclesymptom.service';
+import { AuthService } from '../../services/auth.service';
 import { Periodcycle } from '../../models/Periodcycle';
+import { Symptom } from '../../models/Symptom';
 
 @Component({
   selector: 'app-dashboard',
@@ -17,116 +22,113 @@ import { Periodcycle } from '../../models/Periodcycle';
   imports: [
     CommonModule,
     RouterModule,
-    MatCardModule,
-    MatButtonModule,
     MatIconModule,
     MatMenuModule,
-    MatProgressSpinnerModule
+    MatButtonModule,
+    MatCardModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent implements OnInit {
-  userId: number | null = null;
-  recentCycles: Periodcycle[] = [];
-  averageCycleLength: number | null = null;
-  averagePeriodLength: number | null = null;
-  nextPeriodDate: Date | null = null;
-  isLoading: boolean = false;
-  errorMessage: string = '';
+  recentCycles: (Periodcycle & { symptoms: Symptom[] })[] = [];
+  isLoading = false;
+  errorMessage = '';
+  averageCycleLength?: number;
+  averagePeriodLength?: number;
+  nextPeriodDate?: Date;
 
   constructor(
-    private router: Router,
-    private authService: AuthService,
-    private periodCycleService: PeriodCycleService
+    private periodCycleService: PeriodCycleService,
+    private cycleSymptomService: CycleSymptomService,
+    private auth: AuthService,
+    private snack: MatSnackBar
   ) {}
 
   ngOnInit(): void {
-    this.userId = this.authService.getUserId();
-    
-    if (!this.userId) {
-      this.errorMessage = 'User ID not found. Please log in again.';
-      return;
-    }
-    
-    this.loadCycleData();
+    this.loadCycles();
   }
 
-  loadCycleData(): void {
-    if (!this.userId) return;
-    
+  private async loadCycles(): Promise<void> {
     this.isLoading = true;
-    this.errorMessage = '';
-    
-    this.periodCycleService.getCyclesByUserId(this.userId).subscribe({
-      next: (cycles) => {
-        this.recentCycles = this.sortCyclesByDate(cycles);
-        this.calculateStats(cycles);
-        this.isLoading = false;
+    const userId = this.auth.getUserId()!;
+    try {
+      const cycles = await firstValueFrom(this.periodCycleService.getCyclesByUserId(userId));
+      // sort newest first
+      cycles.sort((a, b) => new Date(b.startDate).valueOf() - new Date(a.startDate).valueOf());
+
+      // fetch symptoms for each cycle in parallel
+      const withSymptoms = await Promise.all(
+        cycles.map(async (c): Promise<Periodcycle & { symptoms: Symptom[] }> => {
+          const syms: Symptom[] = await firstValueFrom(
+            this.cycleSymptomService.getSymptomsByCycleId(c.cycleId)
+          );
+          return { ...c, symptoms: syms };
+        })
+      );
+
+      this.recentCycles = withSymptoms;
+      this.calculateStats(cycles);
+    } catch (err) {
+      this.errorMessage = 'Failed to load cycles';
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private calculateStats(cycles: Periodcycle[]): void {
+    if (!cycles.length) {
+      this.averageCycleLength = undefined;
+      this.averagePeriodLength = undefined;
+      return;
+    }
+  
+    // Compute each period’s bleeding length (end – start + 1 day)
+    const periodLengths = cycles.map(c => {
+      const start = new Date(c.startDate).valueOf();
+      const end   = new Date(c.endDate).valueOf();
+      return Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    });
+    this.averagePeriodLength = Math.round(
+      periodLengths.reduce((sum, len) => sum + len, 0) / periodLengths.length
+    );
+  
+    // Compute inter-cycle lengths (diff between consecutive start dates)
+    if (cycles.length > 1) {
+      const sorted = [...cycles].sort(
+        (a, b) => new Date(a.startDate).valueOf() - new Date(b.startDate).valueOf()
+      );
+      const cycleDiffs: number[] = [];
+      for (let i = 1; i < sorted.length; i++) {
+        const prev = new Date(sorted[i - 1].startDate).valueOf();
+        const curr = new Date(sorted[i].startDate).valueOf();
+        cycleDiffs.push(Math.round((curr - prev) / (1000 * 60 * 60 * 24)));
+      }
+      this.averageCycleLength = Math.round(
+        cycleDiffs.reduce((sum, d) => sum + d, 0) / cycleDiffs.length
+      );
+    } else {
+      this.averageCycleLength = undefined;
+    }
+  }
+
+  onDeleteCycle(cycleId: number): void {
+    const userId = this.auth.getUserId()!;
+    this.periodCycleService.deleteCycle(cycleId, userId).subscribe({
+      next: () => {
+        this.recentCycles = this.recentCycles.filter(c => c.cycleId !== cycleId);
+        this.calculateStats(this.recentCycles);
+        this.snack.open('Cycle deleted', 'Close', { duration: 3000 });
       },
-      error: (error) => {
-        console.error('Error loading cycles:', error);
-        this.errorMessage = 'Could not load your cycle data. Please try again later.';
-        this.isLoading = false;
+      error: () => {
+        this.snack.open('Failed to delete cycle', 'Close', { duration: 3000 });
       }
     });
   }
-  
-  sortCyclesByDate(cycles: Periodcycle[]): Periodcycle[] {
-    return [...cycles].sort((a, b) => {
-      const dateA = new Date(a.startDate).getTime();
-      const dateB = new Date(b.startDate).getTime();
-      return dateB - dateA; // Descending order
-    });
-  }
-  
-  calculateStats(cycles: Periodcycle[]): void {
-    if (cycles.length === 0) {
-      return;
-    }
-    
-    // Calculate average period length
-    const totalPeriodDays = cycles.reduce((sum, cycle) => sum + cycle.duration, 0);
-    this.averagePeriodLength = Math.round(totalPeriodDays / cycles.length);
-    
-    // Calculate average cycle length
-    if (cycles.length >= 2) {
-      const sortedCycles = this.sortCyclesByDate(cycles).reverse(); // Oldest first
-      let totalCycleDays = 0;
-      let cycleCount = 0;
-      
-      for (let i = 0; i < sortedCycles.length - 1; i++) {
-        const currentStart = new Date(sortedCycles[i].startDate);
-        const nextStart = new Date(sortedCycles[i + 1].startDate);
-        const cycleDays = Math.floor((nextStart.getTime() - currentStart.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (cycleDays > 0 && cycleDays < 60) {
-          totalCycleDays += cycleDays;
-          cycleCount++;
-        }
-      }
-      
-      if (cycleCount > 0) {
-        this.averageCycleLength = Math.round(totalCycleDays / cycleCount);
-        this.predictNextPeriod();
-      }
-    }
-  }
-  
-  predictNextPeriod(): void {
-    if (!this.averageCycleLength || this.recentCycles.length === 0) {
-      return;
-    }
-    
-    const lastCycle = this.recentCycles[0];
-    const lastStart = new Date(lastCycle.startDate);
-    
-    this.nextPeriodDate = new Date(lastStart);
-    this.nextPeriodDate.setDate(lastStart.getDate() + this.averageCycleLength);
-  }
-  
+
   logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
+    this.auth.logout();
   }
 }

@@ -70,7 +70,7 @@ export class ProfileComponent implements OnInit {
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private location: Location
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.profileForm = this.fb.group({
@@ -78,7 +78,6 @@ export class ProfileComponent implements OnInit {
       email: [{ value: '', disabled: true }]
     });
     this.passwordForm = this.fb.group({
-      currentPassword: ['', Validators.required],
       newPassword: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', Validators.required]
     }, { validators: this.passwordMatch });
@@ -106,9 +105,9 @@ export class ProfileComponent implements OnInit {
       next: (data: any) => {
         this.user = {
           userId: data.UserId ?? data.userId,
-          name:   data.Name   ?? data.name,
-          email:  data.Email  ?? data.email,
-          pw:     data.Pw     ?? data.pw     ?? '',
+          name: data.Name ?? data.name,
+          email: data.Email ?? data.email,
+          pw: data.Pw ?? data.pw ?? '',
           createdAt: new Date(data.CreatedAt ?? data.createdAt)
         };
         this.userId = this.user.userId;
@@ -147,20 +146,30 @@ export class ProfileComponent implements OnInit {
   }
 
   updatePassword(): void {
-    if (this.passwordForm.invalid || !this.userId) return;
+    // now also guard against missing userId
+    if (this.passwordForm.invalid || !this.user || this.user.userId == null) return;
     this.isPasswordUpdating = true;
     const newPwd = this.passwordForm.value.newPassword;
-    this.userService.updatePassword(this.userId, newPwd).subscribe({
-      next: () => {
+
+    // at this point TS knows this.user.userId is a number
+    const updatedUser: User = {
+      ...this.user,
+      userId: this.user.userId, // OK: number
+      pw: newPwd
+    };
+
+    this.userService.updateUser(updatedUser).subscribe({
+      next: (saved) => {
+        this.isPasswordUpdating = false;
         this.changePasswordMode = false;
-        this.successMessage = 'Password changed';
-        setTimeout(() => this.successMessage = '', 3000);
+        this.user = saved;
         this.passwordForm.reset();
-        this.isPasswordUpdating = false;
+        this.successMessage = 'Password updated successfully';
+        setTimeout(() => this.successMessage = '', 3000);
       },
-      error: () => {
-        this.errorMessage = 'Password update failed';
+      error: (err) => {
         this.isPasswordUpdating = false;
+        this.errorMessage = err.message || 'Failed to update password';
       }
     });
   }

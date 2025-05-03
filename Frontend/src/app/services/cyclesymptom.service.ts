@@ -1,17 +1,36 @@
-import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { CycleSymptom } from '../models/CycleSymptom';
+import { Symptom } from '../models/Symptom';
 import { environment } from '../environments/environment';
 
-@Injectable({
-  providedIn: 'root'
-})
+export interface CreateCycleSymptomDto {
+  cycleId:   number;
+  symptomId: number;
+  intensity: number;
+  date:      string;  // "YYYY-MM-DD"
+}
+
+export interface CycleSymptom {
+  cycleSymptomId: number;
+  cycleId:        number;
+  symptomId:      number;
+  intensity:      number;
+  date:           string;
+  createdAt:      string;
+}
+
+@Injectable({ providedIn: 'root' })
 export class CycleSymptomService {
-  private baseUrl = `${environment.apiUrl}/cyclesymptom`;
-  
-  constructor(private http: HttpClient) { }
-  
+  // Point directly at your backend API
+  private baseUrl = 'http://localhost:5113/api/CycleSymptom';
+
+  constructor(private http: HttpClient) {}
+
+  createCycleSymptom(dto: CreateCycleSymptomDto): Observable<CycleSymptom> {
+    return this.http.post<CycleSymptom>(this.baseUrl, dto);
+  }
+
   getCycleSymptomById(id: number): Observable<CycleSymptom> {
     return this.http.get<CycleSymptom>(`${this.baseUrl}/${id}`);
   }
@@ -25,8 +44,8 @@ export class CycleSymptomService {
     return this.http.get<CycleSymptom[]>(`${this.baseUrl}/date/${formattedDate}`);
   }
   
-  createCycleSymptom(cycleSymptom: CycleSymptom): Observable<CycleSymptom> {
-    return this.http.post<CycleSymptom>(this.baseUrl, cycleSymptom);
+  getSymptomsByCycleId(cycleId: number): Observable<Symptom[]> {
+    return this.http.get<Symptom[]>(`${environment.apiUrl}/cyclesymptom/cycle/${cycleId}`);
   }
   
   updateCycleSymptom(cycleSymptom: CycleSymptom): Observable<any> {

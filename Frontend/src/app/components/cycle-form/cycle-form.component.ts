@@ -10,7 +10,8 @@ import {
   ReactiveFormsModule
 } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { of } from 'rxjs';
+
+import { HttpClientModule } from '@angular/common/http';
 
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -28,16 +29,16 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { AuthService } from '../../services/auth.service';
 import { PeriodCycleService } from '../../services/periodcycle.service';
 import { SymptomService } from '../../services/symptom.service';
-import { CycleSymptomService } from '../../services/cyclesymptom.service';
+import { CycleSymptomService, CreateCycleSymptomDto } from '../../services/cyclesymptom.service';
 
 import { Periodcycle } from '../../models/Periodcycle';
-import { Symptom }    from '../../models/Symptom';
-import { CycleSymptom } from '../../models/CycleSymptom';
+import { Symptom } from '../../models/Symptom';
 
 @Component({
   selector: 'app-cycle-form',
   standalone: true,
   imports: [
+    HttpClientModule,
     CommonModule,
     RouterModule,
     FormsModule,
@@ -61,9 +62,11 @@ import { CycleSymptom } from '../../models/CycleSymptom';
 export class CycleFormComponent implements OnInit {
   @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
 
+  // ← added so template bindings compile
+  isEditMode: boolean = false;
+
   cycleForm!: FormGroup;
   allSymptoms: Symptom[] = [];
-  isEditMode = false;
   isLoading = false;
   errorMessage = '';
 
@@ -96,13 +99,13 @@ export class CycleFormComponent implements OnInit {
         syms.forEach(s => {
           const group = this.fb.group({
             symptomId: [s.symptomId],
-            name:      [s.name],
             selected:  [false],
             intensity: [{ value: 1, disabled: true }, [Validators.min(1), Validators.max(5)]]
           });
           group.get('selected')!.valueChanges.subscribe(sel => {
-            const ctrl = group.get('intensity')!;
-            sel ? ctrl.enable({ emitEvent: false }) : ctrl.disable({ emitEvent: false });
+            sel
+              ? group.get('intensity')!.enable({ emitEvent: false })
+              : group.get('intensity')!.disable({ emitEvent: false });
           });
           this.symptoms.push(group);
         });
@@ -151,55 +154,39 @@ export class CycleFormComponent implements OnInit {
       createdAt: new Date()
     };
 
-    const op$ = this.isEditMode
-      ? this.periodCycleService.updateCycle(cycle)
-      : this.periodCycleService.createCycle(cycle);
-
-    op$.subscribe({
+    this.periodCycleService.createCycle(cycle).subscribe({
       next: (saved: Periodcycle) => {
-        // Use original form startDate for symptom date
-        const symptomDate = startDate as Date;
-
-        const links: CycleSymptom[] = this.symptoms.controls
+        const links: CreateCycleSymptomDto[] = this.symptoms.controls
           .map(ctrl => ctrl.value)
           .filter((c: any) => c.selected)
           .map((c: any) => ({
-            cycleSymptomId: 0,
-            cycleId:        saved.cycleId,
-            symptomId:      c.symptomId,
-            intensity:      c.intensity,
-            date:           symptomDate,
-            createdAt:      new Date()
+            cycleId:   saved.cycleId,
+            symptomId: Number(c.symptomId),
+            intensity: c.intensity,
+            date:      startDate.toISOString().split('T')[0]
           }));
 
-        const clear$ = this.isEditMode
-          ? this.cycleSymptomService.deleteCycleSymptomsByCycleId(saved.cycleId)
-          : of(undefined);
-
-        clear$.subscribe(() => {
-          if (links.length === 0) {
-            this.finishSave();
-          } else {
-            let done = 0;
-            links.forEach(link =>
-              this.cycleSymptomService.createCycleSymptom(link)
-                .subscribe({
-                  next: () => {
-                    if (++done === links.length) this.finishSave();
-                  },
-                  error: (err: { error: { title: string; }; }) => {
-                    console.error('CycleSymptom validation error', err.error);
-                    this.errorMessage = err.error.title || 'Error saving symptoms';
-                    this.isLoading = false;
-                  }
-                })
-            );
-          }
-        });
+        if (links.length === 0) {
+          this.finishSave();
+        } else {
+          let done = 0;
+          links.forEach(dto =>
+            this.cycleSymptomService.createCycleSymptom(dto).subscribe({
+              next: () => {
+                if (++done === links.length) this.finishSave();
+              },
+              error: err => {
+                console.error('Error saving symptom link', err);
+                this.errorMessage = 'Error saving symptoms';
+                this.isLoading = false;
+              }
+            })
+          );
+        }
       },
       error: err => {
-        console.error('PeriodCycle error', err.error);
-        this.errorMessage = err.error.title || 'Error saving cycle';
+        console.error('Error creating cycle', err);
+        this.errorMessage = 'Error saving cycle';
         this.isLoading = false;
       }
     });
@@ -219,7 +206,7 @@ export class CycleFormComponent implements OnInit {
           this.location.back();
         },
         error: err => {
-          console.error('Delete cycle error', err.error);
+          console.error('Error deleting cycle', err);
           this.errorMessage = 'Delete failed';
           this.isLoading = false;
         }

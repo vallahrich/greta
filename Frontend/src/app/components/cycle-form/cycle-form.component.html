@@ -14,52 +14,28 @@
       {{ errorMessage }}
     </div>
 
-    <!-- The real form -->
     <form [formGroup]="cycleForm" (ngSubmit)="saveCycle()">
-      <!-- Cycle Details -->
-      <h2>Cycle Details</h2>
-      <div class="date-fields">
-        <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Start Date</mat-label>
-          <input
-            matInput
-            [matDatepicker]="startPicker"
-            formControlName="startDate"
-            [min]="minDate"
-            [max]="maxDate"
-          />
-          <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
-          <mat-datepicker #startPicker></mat-datepicker>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="form-field">
-          <mat-label>End Date</mat-label>
-          <input
-            matInput
-            [matDatepicker]="endPicker"
-            formControlName="endDate"
-            [min]="minDate"
-            [max]="maxDate"
-          />
-          <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-          <mat-datepicker #endPicker></mat-datepicker>
-        </mat-form-field>
-      </div>
-      <div *ngIf="cycleForm.hasError('dateRange')" class="date-range-error">
-        End date must be after start date
-      </div>
-
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Notes</mat-label>
-        <textarea
-          matInput
-          formControlName="notes"
-          rows="3"
-          placeholder="Add any notes here"
-        ></textarea>
+      <!-- Dates -->
+      <mat-form-field appearance="outline">
+        <mat-label>Start Date</mat-label>
+        <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
+        <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+        <mat-datepicker #startPicker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>End Date</mat-label>
+        <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
+        <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+        <mat-datepicker #endPicker></mat-datepicker>
       </mat-form-field>
 
-      <!-- ← Symptoms section re-inserted here -->
+      <!-- Notes -->
+      <mat-form-field appearance="outline" class="notes-field">
+        <mat-label>Notes</mat-label>
+        <textarea matInput formControlName="notes"></textarea>
+      </mat-form-field>
+
+      <!-- Symptoms -->
       <h2>Symptoms</h2>
       <div formArrayName="symptoms">
         <div
@@ -68,7 +44,7 @@
           class="symptom-row"
         >
           <mat-checkbox formControlName="selected">
-            {{ ctrl.get('name')!.value }}
+            {{ allSymptoms[i].name }}
           </mat-checkbox>
           <mat-form-field appearance="outline" class="intensity-field">
             <mat-label>Intensity</mat-label>
@@ -76,41 +52,30 @@
               matInput
               type="number"
               formControlName="intensity"
-              min="1"
-              max="5"
+              [min]="1"
+              [max]="5"
             />
           </mat-form-field>
         </div>
       </div>
 
       <!-- Actions -->
-      <div class="form-actions">
-        <button mat-button type="button" (click)="cancel()">Cancel</button>
-        <button
-          mat-raised-button
-          color="warn"
-          *ngIf="isEditMode"
-          type="button"
-          (click)="openDeleteConfirmation()"
-        >
-          Delete
-        </button>
-        <button
-          mat-raised-button
-          color="primary"
-          type="submit"
-          [disabled]="cycleForm.invalid"
-        >
+      <div class="actions">
+        <button mat-stroked-button type="button" (click)="cancel()">Cancel</button>
+        <button mat-raised-button color="primary" type="submit" [disabled]="cycleForm.invalid">
           {{ isEditMode ? 'Update' : 'Save' }}
+        </button>
+        <button *ngIf="isEditMode" mat-raised-button color="warn" type="button" (click)="openDeleteConfirmation()">
+          Delete
         </button>
       </div>
     </form>
   </div>
 
-  <!-- Loading spinner -->
+  <!-- Loading Spinner -->
   <ng-template #loading>
-    <div class="loading-container">
-      <mat-spinner diameter="40"></mat-spinner>
+    <div class="loading">
+      <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
     </div>
   </ng-template>
 </div>
