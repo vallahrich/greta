@@ -1,153 +1,136 @@
-<!-- Add a retry button to the profile page -->
 <div class="profile-container">
   <header class="profile-header">
     <button mat-icon-button (click)="navigateBack()">
       <mat-icon>arrow_back</mat-icon>
     </button>
     <h1>Your Profile</h1>
-    <button mat-icon-button [matMenuTriggerFor]="menu">
-      <mat-icon>more_vert</mat-icon>
+    <button mat-icon-button (click)="logout()">
+      <mat-icon>exit_to_app</mat-icon>
     </button>
-    <mat-menu #menu="matMenu">
-      <button mat-menu-item routerLink="/dashboard">
-        <mat-icon>home</mat-icon>
-        <span>Dashboard</span>
-      </button>
-      <button mat-menu-item routerLink="/calendar">
-        <mat-icon>calendar_today</mat-icon>
-        <span>Calendar</span>
-      </button>
-      <button mat-menu-item (click)="logout()">
-        <mat-icon>exit_to_app</mat-icon>
-        <span>Logout</span>
-      </button>
-    </mat-menu>
   </header>
 
   <div class="profile-content">
-    <!-- Loading state -->
     <div *ngIf="isLoading" class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
 
-    <!-- Error message with retry button -->
     <div *ngIf="errorMessage" class="error-message">
-      <mat-icon>error_outline</mat-icon>
-      <span>{{errorMessage}}</span>
-      <button mat-button color="warn" *ngIf="errorMessage.includes('Authentication error')" (click)="refreshUserData()">
-        <mat-icon>refresh</mat-icon> Retry
+      <mat-icon>error</mat-icon>
+      <span>{{ errorMessage }}</span>
+      <button mat-button *ngIf="errorMessage.includes('Authentication')" (click)="refreshUserData()">
+        Retry
       </button>
     </div>
 
-    <!-- Success message -->
     <div *ngIf="successMessage" class="success-message">
       <mat-icon>check_circle</mat-icon>
-      <span>{{successMessage}}</span>
+      {{ successMessage }}
     </div>
 
-    <!-- Profile Overview Section -->
-    <mat-card class="profile-card" *ngIf="!isLoading && user">
+    <mat-card *ngIf="!isLoading && user" class="profile-card">
       <div class="profile-header-section">
         <div class="avatar-container">
-          <div class="avatar">
-            {{ user.name.charAt(0) }}
-          </div>
+          <div class="avatar">{{ user!.name.charAt(0) }}</div>
         </div>
         <div class="profile-details">
-          <h2>{{ user.name }}</h2>
-          <p class="email">{{ user.email }}</p>
-          <p class="member-since">Member since {{ user.createdAt | date }}</p>
+          <h2>{{ user!.name }}</h2>
+          <p class="email">{{ user!.email }}</p>
+          <p class="member-since">
+            Member since {{ user!.createdAt | date:'longDate' }}
+          </p>
         </div>
       </div>
-      
+
       <mat-divider></mat-divider>
-      
+
       <div class="profile-actions">
         <button mat-stroked-button color="primary" (click)="editMode = !editMode">
-          <mat-icon>edit</mat-icon> Edit Profile
+          <mat-icon>edit</mat-icon>
+          Edit Profile
         </button>
         <button mat-stroked-button color="accent" (click)="changePasswordMode = !changePasswordMode">
-          <mat-icon>lock</mat-icon> Change Password
+          <mat-icon>lock</mat-icon>
+          Change Password
         </button>
-        <button mat-stroked-button color="basic" (click)="refreshUserData()">
-          <mat-icon>refresh</mat-icon> Refresh Data
+        <button mat-stroked-button color="warn" (click)="openDeleteDialog()">
+          <mat-icon>delete</mat-icon>
+          Delete Profile
         </button>
       </div>
     </mat-card>
 
-    <!-- Rest of the profile component HTML remains the same -->
-    <!-- Edit Profile Form -->
-    <mat-card class="profile-card" *ngIf="editMode && !isLoading">
+    <!-- Edit form -->
+    <mat-card *ngIf="editMode && !isLoading" class="profile-card">
       <mat-card-header>
         <mat-card-title>Edit Profile</mat-card-title>
       </mat-card-header>
-      
       <mat-card-content>
         <form [formGroup]="profileForm" (ngSubmit)="updateProfile()">
-          <mat-form-field appearance="outline" class="full-width">
+          <mat-form-field class="full-width">
             <mat-label>Name</mat-label>
             <input matInput formControlName="name">
-            <mat-error *ngIf="profileForm.get('name')?.hasError('required')">
-              Name is required
-            </mat-error>
           </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
+          <mat-form-field class="full-width">
             <mat-label>Email</mat-label>
             <input matInput formControlName="email" readonly>
-            <mat-hint>Email cannot be changed</mat-hint>
           </mat-form-field>
-
           <div class="form-actions">
-            <button mat-button type="button" (click)="editMode = false">
-              Cancel
-            </button>
-            <button 
-              mat-raised-button 
-              color="primary" 
-              type="submit" 
-              [disabled]="profileForm.invalid || isProfileUpdating">
-              <mat-spinner *ngIf="isProfileUpdating" diameter="20" class="button-spinner"></mat-spinner>
-              <span *ngIf="!isProfileUpdating">Save Changes</span>
+            <button mat-button type="button" (click)="editMode = false">Cancel</button>
+            <button mat-raised-button color="primary" type="submit"
+                    [disabled]="profileForm.invalid || isProfileUpdating">
+              Save
             </button>
           </div>
         </form>
       </mat-card-content>
     </mat-card>
 
-    <!-- Change Password Form -->
-    <mat-card class="profile-card" *ngIf="changePasswordMode && !isLoading">
-      <!-- Content from your original template -->
+    <!-- Password form -->
+    <mat-card *ngIf="changePasswordMode && !isLoading" class="profile-card">
+      <mat-card-header>
+        <mat-card-title>Change Password</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="passwordForm" (ngSubmit)="updatePassword()">
+          <mat-form-field class="full-width">
+            <mat-label>New Password</mat-label>
+            <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="newPassword">
+            <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword">
+              <mat-icon>{{ hidePassword ? 'visibility' : 'visibility_off' }}</mat-icon>
+            </button>
+          </mat-form-field>
+          <mat-form-field class="full-width">
+            <mat-label>Confirm Password</mat-label>
+            <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="confirmPassword">
+          </mat-form-field>
+          <div class="form-actions">
+            <button mat-button type="button" (click)="changePasswordMode = false">Cancel</button>
+            <button mat-raised-button color="primary" type="submit"
+                    [disabled]="passwordForm.invalid || isPasswordUpdating">
+              Change
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
     </mat-card>
 
-    <!-- Danger Zone Section -->
-    <mat-card class="profile-card danger-zone" *ngIf="!isLoading && !editMode && !changePasswordMode && user">
-      <!-- Content from your original template -->
-    </mat-card>
-
-    <!-- Logout Button (Mobile placement) -->
-    <div class="logout-container" *ngIf="!isLoading && !editMode && !changePasswordMode && user">
-      <button mat-raised-button color="primary" (click)="logout()" class="logout-button">
-        <mat-icon>exit_to_app</mat-icon> Logout
-      </button>
-    </div>
+    <!-- Delete confirmation dialog -->
+    <ng-template #deleteAccountDialog>
+      <h2 mat-dialog-title>Confirm Deletion</h2>
+      <mat-dialog-content>
+        <p>Type <strong>DELETE</strong> to confirm:</p>
+        <mat-form-field class="full-width">
+          <input matInput [(ngModel)]="deleteConfirmation">
+        </mat-form-field>
+      </mat-dialog-content>
+      <mat-dialog-actions>
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button mat-raised-button color="warn"
+                [disabled]="deleteConfirmation !== 'DELETE'"
+                [mat-dialog-close]="deleteConfirmation">
+          Delete
+        </button>
+      </mat-dialog-actions>
+    </ng-template>
   </div>
-
-  <!-- Navigation Footer -->
-  <nav class="profile-nav">
-    <a mat-raised-button routerLink="/dashboard">
-      <mat-icon>home</mat-icon> Dashboard
-    </a>
-    <a mat-raised-button routerLink="/calendar">
-      <mat-icon>calendar_today</mat-icon> Calendar
-    </a>
-    <a mat-raised-button color="primary" routerLink="/profile" class="active">
-      <mat-icon>person</mat-icon> Profile
-    </a>
-  </nav>
 </div>
-
-<!-- Delete Account Confirmation Dialog -->
-<ng-template #deleteAccountDialog>
-  <!-- Content from your original template -->
-</ng-template>

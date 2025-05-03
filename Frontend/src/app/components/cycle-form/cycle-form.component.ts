@@ -1,261 +1,231 @@
 import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router, ActivatedRoute, RouterModule } from '@angular/router';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDatepickerModule } from '@angular/material/datepicker';
+import { Location } from '@angular/common';
+import {
+  FormBuilder,
+  FormGroup,
+  Validators,
+  FormArray,
+  FormsModule,
+  ReactiveFormsModule
+} from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { of } from 'rxjs';
+
+import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
-import { PeriodCycleService } from '../../services/periodcycle.service';
 import { AuthService } from '../../services/auth.service';
+import { PeriodCycleService } from '../../services/periodcycle.service';
+import { SymptomService } from '../../services/symptom.service';
+import { CycleSymptomService } from '../../services/cyclesymptom.service';
+
 import { Periodcycle } from '../../models/Periodcycle';
+import { Symptom }    from '../../models/Symptom';
+import { CycleSymptom } from '../../models/CycleSymptom';
 
 @Component({
   selector: 'app-cycle-form',
   standalone: true,
   imports: [
-    CommonModule, 
-    FormsModule, 
-    ReactiveFormsModule,
+    CommonModule,
     RouterModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatIconModule,
+    MatCardModule,
+    MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatDividerModule,
+    MatDialogModule,
     MatSnackBarModule,
-    MatDialogModule
+    MatProgressSpinnerModule,
+    MatCheckboxModule
   ],
   templateUrl: './cycle-form.component.html',
   styleUrls: ['./cycle-form.component.css']
 })
 export class CycleFormComponent implements OnInit {
   @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
-  
-  userId: number | null = null;
+
   cycleForm!: FormGroup;
-  isLoading: boolean = false;
-  errorMessage: string = '';
-  isEditMode: boolean = false;
-  cycleId: number | null = null;
-  
-  minDate: Date = new Date(new Date().getFullYear() - 1, 0, 1);
-  maxDate: Date = new Date();
-  
+  allSymptoms: Symptom[] = [];
+  isEditMode = false;
+  isLoading = false;
+  errorMessage = '';
+
+  minDate = new Date(2000, 0, 1);
+  maxDate = new Date();
+
   constructor(
-    private router: Router,
-    private route: ActivatedRoute,
-    private formBuilder: FormBuilder,
+    private fb: FormBuilder,
+    private auth: AuthService,
+    private location: Location,
     private periodCycleService: PeriodCycleService,
-    private authService: AuthService,
-    private snackBar: MatSnackBar,
+    private symptomService: SymptomService,
+    private cycleSymptomService: CycleSymptomService,
+    private snack: MatSnackBar,
     private dialog: MatDialog
   ) {}
-  
+
   ngOnInit(): void {
-    this.userId = this.authService.getUserId();
-    
-    if (!this.userId) {
-      this.errorMessage = 'User ID not found. Please log in again.';
-      this.snackBar.open('Please log in again.', 'Close', { duration: 3000 });
-      this.router.navigate(['/login']);
-      return;
-    }
-    
-    this.initForm();
-    this.checkForQueryParams();
-    this.checkForEditMode();
-  }
-  
-  private initForm(): void {
-    this.cycleForm = this.formBuilder.group({
-      startDate: ['', [Validators.required]],
-      endDate: ['', [Validators.required]],
-      notes: ['']
+    // Build the Reactive Form
+    this.cycleForm = this.fb.group({
+      cycleId:   [0],
+      startDate: [null, Validators.required],
+      endDate:   [null, Validators.required],
+      notes:     [''],
+      symptoms:  this.fb.array([])
     }, { validators: this.dateRangeValidator });
-  }
-  
-  private checkForQueryParams(): void {
-    this.route.queryParams.subscribe(params => {
-      if (params['date']) {
-        try {
-          const selectedDate = new Date(params['date']);
-          if (!isNaN(selectedDate.getTime())) {
-            this.cycleForm.patchValue({
-              startDate: selectedDate,
-              endDate: new Date(selectedDate)
-            });
-          }
-        } catch (e) {
-          console.error('Invalid date parameter:', e);
-        }
-      }
-    });
-  }
-  
-  private checkForEditMode(): void {
-    this.route.params.subscribe(params => {
-      if (params['cycle_id']) {
-        this.isEditMode = true;
-        this.cycleId = +params['cycle_id'];
-        this.loadCycleData(this.cycleId);
-      }
-    });
-  }
-  
-  private loadCycleData(cycleId: number): void {
-    this.isLoading = true;
-    this.errorMessage = '';
-    
-    this.periodCycleService.getCycleById(cycleId).subscribe({
-      next: (cycle) => {
-        this.cycleForm.patchValue({
-          startDate: new Date(cycle.startDate),
-          endDate: new Date(cycle.endDate),
-          notes: cycle.notes || ''
+
+    // Load all symptoms and initialize FormArray
+    this.symptomService.getAllSymptoms().subscribe({
+      next: (syms: Symptom[]) => {
+        this.allSymptoms = syms;
+        syms.forEach(s => {
+          const group = this.fb.group({
+            symptomId: [s.symptomId],
+            name:      [s.name],
+            selected:  [false],
+            intensity: [{ value: 1, disabled: true }, [Validators.min(1), Validators.max(5)]]
+          });
+          // Enable/disable intensity based on selection
+          group.get('selected')!.valueChanges.subscribe(sel => {
+            const ctrl = group.get('intensity')!;
+            sel ? ctrl.enable({ emitEvent: false }) : ctrl.disable({ emitEvent: false });
+          });
+          this.symptoms.push(group);
         });
-        
-        this.isLoading = false;
       },
-      error: (error) => {
-        console.error('Error loading cycle:', error);
-        this.errorMessage = 'Could not load cycle data. Please try again.';
-        this.isLoading = false;
-      }
+      error: () => this.errorMessage = 'Failed to load symptoms'
     });
   }
-  
-  private dateRangeValidator(group: FormGroup): {[key: string]: any} | null {
-    const start = group.get('startDate')?.value;
-    const end = group.get('endDate')?.value;
-    
-    if (start && end) {
-      const startDate = start instanceof Date ? start : new Date(start);
-      const endDate = end instanceof Date ? end : new Date(end);
-      
-      if (startDate > endDate) {
-        return { 'dateRange': true };
-      }
-    }
-    
-    return null;
+
+  // Convenience getter for the symptoms FormArray
+  get symptoms(): FormArray {
+    return this.cycleForm.get('symptoms') as FormArray;
   }
-  
-  saveCycle(): void {
-    if (this.cycleForm.invalid || !this.userId) {
-      Object.keys(this.cycleForm.controls).forEach(key => {
-        this.cycleForm.get(key)?.markAsTouched();
+
+  // Validator to ensure endDate >= startDate
+  private dateRangeValidator(group: FormGroup) {
+    const start = group.get('startDate')!.value;
+    const end   = group.get('endDate')!.value;
+    return start && end && end < start ? { dateRange: true } : null;
+  }
+
+  // Navigate back
+  cancel(): void {
+    this.location.back();
+  }
+
+  // Open confirmation dialog before delete
+  openDeleteConfirmation(): void {
+    this.dialog.open(this.deleteDialog)
+      .afterClosed()
+      .subscribe(confirmed => {
+        if (confirmed) this.deleteCycle();
       });
-      return;
-    }
-    
+  }
+
+  // Handle form submission
+  saveCycle(): void {
+    if (this.cycleForm.invalid) return;
     this.isLoading = true;
-    this.errorMessage = '';
-    
-    const formValues = this.cycleForm.value;
-    
-    const cycleData: Periodcycle = {
-      cycleId: this.isEditMode && this.cycleId ? this.cycleId : 0,
-      userId: Number(this.userId),
-      startDate: formValues.startDate,
-      endDate: formValues.endDate,
-      notes: formValues.notes || '',
-      duration: this.calculateDuration(formValues.startDate, formValues.endDate),
+
+    const userId = this.auth.getUserId()!;
+    const { cycleId, startDate, endDate, notes } = this.cycleForm.value;
+
+    // Calculate duration in days
+    const duration = Math.ceil(
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    const cycle: Periodcycle = {
+      cycleId,
+      userId,
+      startDate,
+      endDate,
+      notes,
+      duration,
       createdAt: new Date()
     };
-    
-    if (this.isEditMode && this.cycleId) {
-      this.updateCycle(cycleData);
-    } else {
-      this.createCycle(cycleData);
-    }
-  }
-  
-  private calculateDuration(startDate: Date, endDate: Date): number {
-    const start = startDate instanceof Date ? startDate : new Date(startDate);
-    const end = endDate instanceof Date ? endDate : new Date(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-  }
-  
-  private createCycle(cycle: Periodcycle): void {
-    this.periodCycleService.createCycle(cycle).subscribe({
-      next: (savedCycle) => {
-        this.snackBar.open('Cycle saved successfully', 'Close', { duration: 3000 });
-        this.isLoading = false;
-        this.navigateBack();
+
+    const op$ = this.isEditMode
+      ? this.periodCycleService.updateCycle(cycle)
+      : this.periodCycleService.createCycle(cycle);
+
+    op$.subscribe({
+      next: (saved: Periodcycle) => {
+        // Build CycleSymptom links
+        const links: CycleSymptom[] = this.symptoms.controls
+          .map(ctrl => ctrl.value)
+          .filter((c: any) => c.selected)
+          .map((c: any) => ({
+            cycleSymptomId: 0,
+            cycleId:        saved.cycleId,
+            symptomId:      c.symptomId,
+            intensity:      c.intensity,
+            date:           saved.startDate,
+            createdAt:      new Date()
+          }));
+
+        // If editing, clear existing links first
+        const clear$ = this.isEditMode
+          ? this.cycleSymptomService.deleteCycleSymptomsByCycleId(saved.cycleId)
+          : of(undefined);
+
+        clear$.subscribe(() => {
+          if (links.length === 0) {
+            this.finishSave();
+          } else {
+            let done = 0;
+            links.forEach(link =>
+              this.cycleSymptomService.createCycleSymptom(link).subscribe(() => {
+                if (++done === links.length) this.finishSave();
+              })
+            );
+          }
+        });
       },
-      error: (error) => {
-        console.error('Error saving cycle:', error);
-        this.errorMessage = 'Could not save your cycle data. Please check the API configuration.';
+      error: () => {
+        this.errorMessage = 'Save failed';
         this.isLoading = false;
       }
     });
   }
-  
-  private updateCycle(cycle: Periodcycle): void {
-    this.periodCycleService.updateCycle(cycle).subscribe({
-      next: () => {
-        this.snackBar.open('Cycle updated successfully', 'Close', { duration: 3000 });
-        this.isLoading = false;
-        this.navigateBack();
-      },
-      error: (error) => {
-        console.error('Error updating cycle:', error);
-        this.errorMessage = 'Could not update your cycle data. Please check the API configuration.';
-        this.isLoading = false;
-      }
-    });
+
+  // Show snackbar and navigate back
+  private finishSave(): void {
+    this.snack.open('Cycle saved', 'Close', { duration: 3000 });
+    this.location.back();
   }
-  
-  openDeleteConfirmation(): void {
-    const dialogRef = this.dialog.open(this.deleteDialog);
-    
-    dialogRef.afterClosed().subscribe(result => {
-      if (result && this.cycleId && this.userId) {
-        this.deleteCycle(this.cycleId);
-      }
-    });
-  }
-  
-  deleteCycle(cycleId: number): void {
-    if (!this.userId) return;
-    
-    const userId = Number(this.userId);
-    
-    this.isLoading = true;
-    
-    this.periodCycleService.deleteCycle(cycleId, userId).subscribe({
-      next: () => {
-        this.snackBar.open('Cycle deleted successfully', 'Close', { duration: 3000 });
-        this.isLoading = false;
-        this.navigateBack();
-      },
-      error: (error) => {
-        console.error('Error deleting cycle:', error);
-        this.errorMessage = 'Could not delete the cycle. Please try again.';
-        this.isLoading = false;
-      }
-    });
-  }
-  
-  navigateBack(): void {
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      this.router.navigate(['/dashboard']);
-    }
-  }
-  
-  cancel(): void {
-    this.navigateBack();
+
+  // Delete a cycle
+  private deleteCycle(): void {
+    const id = this.cycleForm.value.cycleId;
+    this.periodCycleService.deleteCycle(id, this.auth.getUserId()!)
+      .subscribe({
+        next: () => {
+          this.snack.open('Deleted', 'Close', { duration: 2000 });
+          this.location.back();
+        },
+        error: () => {
+          this.errorMessage = 'Delete failed';
+          this.isLoading = false;
+        }
+      });
   }
 }

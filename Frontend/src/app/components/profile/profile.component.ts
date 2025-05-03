@@ -1,17 +1,18 @@
 import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Location } from '@angular/common';
+import { RouterModule, Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatCardModule } from '@angular/material/card';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { UserService } from '../../services/user.service';
@@ -20,302 +21,186 @@ import { User } from '../../models/User';
 
 @Component({
   selector: 'app-profile',
-  templateUrl: './profile.component.html',
-  styleUrls: ['./profile.component.css'],
   standalone: true,
   imports: [
-    CommonModule, 
+    CommonModule,
     RouterModule,
-    FormsModule, 
-    ReactiveFormsModule, 
-    MatFormFieldModule, 
-    MatInputModule, 
-    MatButtonModule,
+    FormsModule,
+    ReactiveFormsModule,
+
+    // Material
     MatIconModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-    MatMenuModule,
     MatCardModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
     MatDividerModule,
-    MatDialogModule
-  ]
+    MatDialogModule,
+    MatSnackBarModule,
+    MatProgressSpinnerModule,
+    MatMenuModule,
+  ],
+  templateUrl: './profile.component.html',
+  styleUrls: ['./profile.component.css']
 })
 export class ProfileComponent implements OnInit {
   @ViewChild('deleteAccountDialog') deleteAccountDialog!: TemplateRef<any>;
-  
-  // User data
+
   user: User | null = null;
   userId: number | null = null;
-  
-  // Form states
   profileForm!: FormGroup;
   passwordForm!: FormGroup;
-  editMode: boolean = false;
-  changePasswordMode: boolean = false;
-  hidePassword: boolean = true;
-  
-  // Loading states
-  isLoading: boolean = false;
-  isProfileUpdating: boolean = false;
-  isPasswordUpdating: boolean = false;
-  
-  // Message states
-  errorMessage: string = '';
-  successMessage: string = '';
-  
-  // Delete account confirmation
-  deleteConfirmation: string = '';
-  
-  // Max retry count
-  private maxRetries = 3;
-  private retryCount = 0;
-  
+  editMode = false;
+  changePasswordMode = false;
+  hidePassword = true;
+
+  isLoading = false;
+  isProfileUpdating = false;
+  isPasswordUpdating = false;
+
+  errorMessage = '';
+  successMessage = '';
+  deleteConfirmation = '';
+
   constructor(
-    private formBuilder: FormBuilder,
+    private fb: FormBuilder,
     private userService: UserService,
-    private authService: AuthService,
+    private auth: AuthService,
     private router: Router,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private location: Location
   ) {}
-  
+
   ngOnInit(): void {
-    this.initForms();
+    this.profileForm = this.fb.group({
+      name: ['', Validators.required],
+      email: [{ value: '', disabled: true }]
+    });
+    this.passwordForm = this.fb.group({
+      currentPassword: ['', Validators.required],
+      newPassword: ['', [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ['', Validators.required]
+    }, { validators: this.passwordMatch });
+
     this.loadUserData();
   }
-  
-  /**
-   * Initialize all forms
-   */
-  private initForms(): void {
-    // Profile edit form
-    this.profileForm = this.formBuilder.group({
-      name: ['', [Validators.required]],
-      email: [{ value: '', disabled: true }] // Email field is read-only
-    });
-    
-    // Password change form
-    this.passwordForm = this.formBuilder.group({
-      currentPassword: ['', [Validators.required]],
-      newPassword: ['', [Validators.required, Validators.minLength(6)]],
-      confirmPassword: ['', [Validators.required]]
-    }, { validators: this.passwordMatchValidator });
+
+  private passwordMatch(group: FormGroup) {
+    const np = group.get('newPassword')?.value;
+    const cp = group.get('confirmPassword')?.value;
+    return np && cp && np !== cp ? { passwordMismatch: true } : null;
   }
-  
-  /**
-   * Custom validator to ensure passwords match
-   */
-  private passwordMatchValidator(group: FormGroup): { [key: string]: boolean } | null {
-    const newPassword = group.get('newPassword')?.value;
-    const confirmPassword = group.get('confirmPassword')?.value;
-    
-    if (newPassword && confirmPassword && newPassword !== confirmPassword) {
-      return { 'passwordMismatch': true };
-    }
-    
-    return null;
-  }
-  
-  /**
-   * Load user data using email from localStorage with retry capability
-   */
+
   loadUserData(): void {
     this.isLoading = true;
     this.errorMessage = '';
-    this.successMessage = '';
-    
-    // Get email from localStorage
-    const email = this.authService.getUserEmail();
-    
+    const email = this.auth.getUserEmail();
     if (!email) {
-      this.errorMessage = 'User email not found. Please log in again.';
+      this.errorMessage = 'User email missing, please log in again.';
       this.isLoading = false;
       return;
     }
-    
-    
+
     this.userService.getUserByEmail(email).subscribe({
-      next: (data) => {
-        console.log('User data loaded:', data);
-        this.user = data;
-        this.userId = data.userId;
-        this.populateForm(data);
+      next: (data: any) => {
+        this.user = {
+          userId: data.UserId ?? data.userId,
+          name:   data.Name   ?? data.name,
+          email:  data.Email  ?? data.email,
+          pw:     data.Pw     ?? data.pw     ?? '',
+          createdAt: new Date(data.CreatedAt ?? data.createdAt)
+        };
+        this.userId = this.user.userId;
+        this.profileForm.patchValue({
+          name: this.user.name,
+          email: this.user.email
+        });
         this.isLoading = false;
-        this.retryCount = 0; // Reset retry count on success
       },
-      error: (error: HttpErrorResponse) => {
-        console.error('Error loading user data:', error);
-        
-        if (error.status === 401 && this.retryCount < this.maxRetries) {
-          // Retry logic for 401 errors
-          this.retryCount++;
-          this.errorMessage = `Authentication error. Retrying (${this.retryCount}/${this.maxRetries})...`;
-          
-          // Wait a moment before retrying
-          setTimeout(() => {
-            this.loadUserData();
-          }, 1000);
-        } else {
-          if (error.status === 401) {
-            this.errorMessage = 'Authentication error. Please try refreshing the page or log in again.';
-          } else {
-            this.errorMessage = 'Failed to load your profile. Please try again.';
-          }
-          
-          this.isLoading = false;
-        }
+      error: (err: HttpErrorResponse) => {
+        this.errorMessage = err.status === 401
+          ? 'Authentication error. Please retry.'
+          : 'Failed to load profile.';
+        this.isLoading = false;
       }
     });
   }
-  
-  /**
-   * Populate the form with user data
-   */
-  private populateForm(user: User): void {
-    this.profileForm.patchValue({
-      name: user.name,
-      email: user.email
-    });
-  }
-  
-  /**
-   * Update profile information
-   */
+
   updateProfile(): void {
-    if (this.profileForm.invalid || !this.user) {
-      return;
-    }
-    
+    if (this.profileForm.invalid || !this.user) return;
     this.isProfileUpdating = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-    
-    const updatedUser: User = {
-      ...this.user,
-      name: this.profileForm.value.name
-    };
-    
-    this.userService.updateUser(updatedUser).subscribe({
-      next: (response) => {
-        this.isProfileUpdating = false;
+    const updated: User = { ...this.user, name: this.profileForm.value.name };
+    this.userService.updateUser(updated).subscribe({
+      next: () => {
+        this.user = updated;
         this.editMode = false;
-        this.user = updatedUser;
-        this.successMessage = 'Profile updated successfully';
-        
-        // Clear success message after 3 seconds
-        setTimeout(() => {
-          this.successMessage = '';
-        }, 3000);
+        this.successMessage = 'Profile updated';
+        setTimeout(() => this.successMessage = '', 3000);
+        this.isProfileUpdating = false;
       },
-      error: (error) => {
-        console.error('Error updating profile:', error);
-        this.errorMessage = 'Failed to update profile. Please try again.';
+      error: () => {
+        this.errorMessage = 'Error updating profile';
         this.isProfileUpdating = false;
       }
     });
   }
-  
-  /**
-   * Update password
-   */
+
   updatePassword(): void {
-    if (this.passwordForm.invalid || !this.userId) {
-      return;
-    }
-    
+    if (this.passwordForm.invalid || !this.userId) return;
     this.isPasswordUpdating = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-    
-    const newPassword = this.passwordForm.value.newPassword;
-    
-    this.userService.updatePassword(this.userId, newPassword).subscribe({
-      next: (response) => {
-        this.isPasswordUpdating = false;
+    const newPwd = this.passwordForm.value.newPassword;
+    this.userService.updatePassword(this.userId, newPwd).subscribe({
+      next: () => {
         this.changePasswordMode = false;
+        this.successMessage = 'Password changed';
+        setTimeout(() => this.successMessage = '', 3000);
         this.passwordForm.reset();
-        
-        this.successMessage = 'Password updated successfully';
-        
-        // Clear success message after 3 seconds
-        setTimeout(() => {
-          this.successMessage = '';
-        }, 3000);
+        this.isPasswordUpdating = false;
       },
-      error: (error) => {
-        console.error('Error updating password:', error);
-        this.errorMessage = 'Failed to update password. Please try again.';
+      error: () => {
+        this.errorMessage = 'Password update failed';
         this.isPasswordUpdating = false;
       }
     });
   }
-  
-  /**
-   * Open delete account confirmation dialog
-   */
-  openDeleteAccountDialog(): void {
+
+  openDeleteDialog(): void {
     this.deleteConfirmation = '';
-    
-    const dialogRef = this.dialog.open(this.deleteAccountDialog, {
-      width: '400px'
-    });
-    
-    dialogRef.afterClosed().subscribe(result => {
-      if (result && this.userId) {
+    const ref = this.dialog.open(this.deleteAccountDialog, { width: '400px' });
+    ref.afterClosed().subscribe(ans => {
+      if (ans === 'DELETE' && this.userId) {
         this.deleteAccount();
       }
     });
   }
-  
-  /**
-   * Delete user account
-   */
-  deleteAccount(): void {
-    if (!this.userId) {
-      this.errorMessage = 'User ID not found';
-      return;
-    }
-    
+
+  private deleteAccount(): void {
+    if (!this.userId) return;
     this.isLoading = true;
-    this.errorMessage = '';
-    
     this.userService.deleteUser(this.userId).subscribe({
       next: () => {
-        this.isLoading = false;
-        this.authService.logout();
+        this.auth.logout();
         this.router.navigate(['/login']);
-        this.snackBar.open('Your account has been deleted', 'Close', {
-          duration: 5000
-        });
+        this.snackBar.open('Account deleted', 'Close', { duration: 3000 });
       },
-      error: (error) => {
-        console.error('Error deleting account:', error);
-        this.errorMessage = 'Failed to delete account. Please try again.';
+      error: () => {
+        this.errorMessage = 'Delete failed';
         this.isLoading = false;
       }
     });
   }
-  
-  /**
-   * Navigate back to previous page
-   */
-  navigateBack(): void {
-    window.history.back();
-  }
-  
-  /**
-   * Logout user
-   */
+
   logout(): void {
-    this.authService.logout();
+    this.auth.logout();
     this.router.navigate(['/login']);
   }
-  
-  /**
-   * Force refresh user data
-   */
+
+  navigateBack(): void {
+    this.location.back();
+  }
+
   refreshUserData(): void {
-    this.retryCount = 0;
     this.loadUserData();
   }
 }

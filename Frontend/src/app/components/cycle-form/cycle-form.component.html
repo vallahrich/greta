@@ -1,83 +1,130 @@
 <div class="cycle-form-container">
   <!-- Header -->
   <header class="form-header">
-    <button mat-icon-button (click)="navigateBack()">
+    <button mat-icon-button (click)="cancel()">
       <mat-icon>arrow_back</mat-icon>
     </button>
     <h1>{{ isEditMode ? 'Edit Cycle' : 'Add New Cycle' }}</h1>
-    <div class="spacer"></div>
   </header>
 
   <!-- Main Content -->
-  <div class="form-content">
-    <!-- Loading Indicator -->
-    <div *ngIf="isLoading" class="loading-container">
-      <mat-spinner diameter="40"></mat-spinner>
-    </div>
-
-    <!-- Error Message -->
+  <div class="form-content" *ngIf="!isLoading; else loading">
+    <!-- Error -->
     <div *ngIf="errorMessage" class="error-message">
-      {{errorMessage}}
+      {{ errorMessage }}
     </div>
 
-    <!-- Cycle Form -->
-    <div class="form-section" *ngIf="!isLoading">
+    <!-- The real form -->
+    <form [formGroup]="cycleForm" (ngSubmit)="saveCycle()">
+      <!-- Cycle Details -->
       <h2>Cycle Details</h2>
-      <form [formGroup]="cycleForm">
-        <!-- Date Range -->
-        <div class="date-fields">
-          <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Start Date</mat-label>
-            <input matInput [matDatepicker]="startPicker" formControlName="startDate" [min]="minDate" [max]="maxDate">
-            <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
-            <mat-datepicker #startPicker></mat-datepicker>
-            <mat-error *ngIf="cycleForm.get('startDate')?.hasError('required')">
-              Start date is required
-            </mat-error>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="form-field">
-            <mat-label>End Date</mat-label>
-            <input matInput [matDatepicker]="endPicker" formControlName="endDate" [min]="minDate" [max]="maxDate">
-            <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
-            <mat-datepicker #endPicker></mat-datepicker>
-            <mat-error *ngIf="cycleForm.get('endDate')?.hasError('required')">
-              End date is required
-            </mat-error>
-          </mat-form-field>
-        </div>
-
-        <div *ngIf="cycleForm.hasError('dateRange')" class="date-range-error">
-          End date must be after start date
-        </div>
-
-        <!-- Notes Field -->
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Notes</mat-label>
-          <textarea matInput formControlName="notes" rows="3" placeholder="Add any notes about this cycle here"></textarea>
+      <div class="date-fields">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Start Date</mat-label>
+          <input
+            matInput
+            [matDatepicker]="startPicker"
+            formControlName="startDate"
+            [min]="minDate"
+            [max]="maxDate"
+          />
+          <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+          <mat-datepicker #startPicker></mat-datepicker>
         </mat-form-field>
 
-        <!-- Form Actions -->
-        <div class="form-actions">
-          <button mat-button (click)="cancel()">Cancel</button>
-          <button mat-raised-button color="warn" *ngIf="isEditMode" (click)="openDeleteConfirmation()">Delete</button>
-          <button mat-raised-button color="primary" [disabled]="cycleForm.invalid || isLoading" (click)="saveCycle()">
-            {{ isEditMode ? 'Update' : 'Save' }}
-          </button>
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>End Date</mat-label>
+          <input
+            matInput
+            [matDatepicker]="endPicker"
+            formControlName="endDate"
+            [min]="minDate"
+            [max]="maxDate"
+          />
+          <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+          <mat-datepicker #endPicker></mat-datepicker>
+        </mat-form-field>
+      </div>
+      <div *ngIf="cycleForm.hasError('dateRange')" class="date-range-error">
+        End date must be after start date
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Notes</mat-label>
+        <textarea
+          matInput
+          formControlName="notes"
+          rows="3"
+          placeholder="Add any notes here"
+        ></textarea>
+      </mat-form-field>
+
+      <!-- ← Symptoms section re-inserted here -->
+      <h2>Symptoms</h2>
+      <div formArrayName="symptoms">
+        <div
+          *ngFor="let ctrl of symptoms.controls; let i = index"
+          [formGroupName]="i"
+          class="symptom-row"
+        >
+          <mat-checkbox formControlName="selected">
+            {{ ctrl.get('name')!.value }}
+          </mat-checkbox>
+          <mat-form-field appearance="outline" class="intensity-field">
+            <mat-label>Intensity</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="intensity"
+              min="1"
+              max="5"
+            />
+          </mat-form-field>
         </div>
-      </form>
-    </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="form-actions">
+        <button mat-button type="button" (click)="cancel()">Cancel</button>
+        <button
+          mat-raised-button
+          color="warn"
+          *ngIf="isEditMode"
+          type="button"
+          (click)="openDeleteConfirmation()"
+        >
+          Delete
+        </button>
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          [disabled]="cycleForm.invalid"
+        >
+          {{ isEditMode ? 'Update' : 'Save' }}
+        </button>
+      </div>
+    </form>
   </div>
+
+  <!-- Loading spinner -->
+  <ng-template #loading>
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  </ng-template>
 </div>
 
-<!-- Delete Confirmation Dialog -->
+<!-- Delete confirmation dialog -->
 <ng-template #deleteDialog>
   <h2 mat-dialog-title>Delete Cycle</h2>
   <mat-dialog-content>
-    <p>Are you sure you want to delete this cycle? This action cannot be undone.</p>
+    <p>This cannot be undone. Continue?</p>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-raised-button color="warn" [mat-dialog-close]="true">Delete</button>
+    <button mat-raised-button color="warn" [mat-dialog-close]="true">
+      Delete
+    </button>
   </mat-dialog-actions>
 </ng-template>
