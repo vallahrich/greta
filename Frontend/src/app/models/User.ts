@@ -1,7 +1,7 @@
 export interface User {
-    user_id: number;
+    userId: number;
     name: string;
     email: string;
     pw: string;
-    created_at: Date;
+    createdAt: Date;
 }

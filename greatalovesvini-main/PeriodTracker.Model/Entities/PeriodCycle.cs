@@ -1,38 +1,29 @@
 using System.Text.Json.Serialization;
-
-namespace PeriodTracker.Model.Entities;
+using PeriodTracker.Model.Entities;
 
 public class PeriodCycle
 {
     public PeriodCycle(int id)
     {
-        cycleId = id;
+        CycleId = id;
     }
 
-    // Parameterless constructor for JSON deserialization
     [JsonConstructor]
     public PeriodCycle()
     {
-        // Parameterless constructor for deserialization
     }
 
-    public int cycleId { get; set; } // Using camelCase to match frontend expectations
-    public int userId { get; set; }
-    public DateTime startDate { get; set; }
-    public DateTime endDate { get; set; }
-    
-    // Duration is a computed column in the database (interval type)
-    // We'll use this property to convert to days for the frontend
-    public int duration => (int)(endDate - startDate).TotalDays + 1;
-    
-    // New property for notes
-    public string notes { get; set; }
-    public DateTime createdAt { get; set; } = DateTime.Now;
+    public int CycleId { get; set; }
+    public int UserId { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public int Duration => (int)(EndDate - StartDate).TotalDays + 1;
+    public string Notes { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-    // Navigation properties
-    [JsonIgnore] // Prevent circular references
+    [JsonIgnore]
     public User User { get; set; }
     
-    [JsonIgnore] // Prevent circular references
+    [JsonIgnore]
     public List<CycleSymptom> CycleSymptoms { get; set; } = new List<CycleSymptom>();
 }

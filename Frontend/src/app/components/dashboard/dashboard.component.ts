@@ -27,18 +27,11 @@ import { Periodcycle } from '../../models/Periodcycle';
   styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent implements OnInit {
-  // User data
   userId: number | null = null;
-  
-  // Cycle data
   recentCycles: Periodcycle[] = [];
-  
-  // Stats
   averageCycleLength: number | null = null;
   averagePeriodLength: number | null = null;
   nextPeriodDate: Date | null = null;
-  
-  // UI state
   isLoading: boolean = false;
   errorMessage: string = '';
 
@@ -59,9 +52,6 @@ export class DashboardComponent implements OnInit {
     this.loadCycleData();
   }
 
-  /**
-   * Load cycle data from service
-   */
   loadCycleData(): void {
     if (!this.userId) return;
     
@@ -82,20 +72,14 @@ export class DashboardComponent implements OnInit {
     });
   }
   
-  /**
-   * Sort cycles by start date (most recent first)
-   */
   sortCyclesByDate(cycles: Periodcycle[]): Periodcycle[] {
     return [...cycles].sort((a, b) => {
-      const dateA = new Date(a.start_date).getTime();
-      const dateB = new Date(b.start_date).getTime();
-      return dateB - dateA; // Descending order (most recent first)
+      const dateA = new Date(a.startDate).getTime();
+      const dateB = new Date(b.startDate).getTime();
+      return dateB - dateA; // Descending order
     });
   }
   
-  /**
-   * Calculate statistics based on cycle data
-   */
   calculateStats(cycles: Periodcycle[]): void {
     if (cycles.length === 0) {
       return;
@@ -105,18 +89,18 @@ export class DashboardComponent implements OnInit {
     const totalPeriodDays = cycles.reduce((sum, cycle) => sum + cycle.duration, 0);
     this.averagePeriodLength = Math.round(totalPeriodDays / cycles.length);
     
-    // Calculate average cycle length (time between period starts)
+    // Calculate average cycle length
     if (cycles.length >= 2) {
-      const sortedCycles = this.sortCyclesByDate(cycles).reverse(); // Oldest first for calculation
+      const sortedCycles = this.sortCyclesByDate(cycles).reverse(); // Oldest first
       let totalCycleDays = 0;
       let cycleCount = 0;
       
       for (let i = 0; i < sortedCycles.length - 1; i++) {
-        const currentStart = new Date(sortedCycles[i].start_date);
-        const nextStart = new Date(sortedCycles[i + 1].start_date);
+        const currentStart = new Date(sortedCycles[i].startDate);
+        const nextStart = new Date(sortedCycles[i + 1].startDate);
         const cycleDays = Math.floor((nextStart.getTime() - currentStart.getTime()) / (1000 * 60 * 60 * 24));
         
-        if (cycleDays > 0 && cycleDays < 60) { // Filter out potentially erroneous data
+        if (cycleDays > 0 && cycleDays < 60) {
           totalCycleDays += cycleDays;
           cycleCount++;
         }
@@ -129,26 +113,18 @@ export class DashboardComponent implements OnInit {
     }
   }
   
-  /**
-   * Predict next period based on average cycle length
-   */
   predictNextPeriod(): void {
     if (!this.averageCycleLength || this.recentCycles.length === 0) {
       return;
     }
     
-    // Get most recent cycle start date
     const lastCycle = this.recentCycles[0];
-    const lastStart = new Date(lastCycle.start_date);
+    const lastStart = new Date(lastCycle.startDate);
     
-    // Predict next period
     this.nextPeriodDate = new Date(lastStart);
     this.nextPeriodDate.setDate(lastStart.getDate() + this.averageCycleLength);
   }
   
-  /**
-   * Log the user out
-   */
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);

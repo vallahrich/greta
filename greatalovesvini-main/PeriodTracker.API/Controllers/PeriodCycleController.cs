@@ -1,14 +1,13 @@
-using System;
-using System.Collections.Generic;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using PeriodTracker.Model.Entities;
 using PeriodTracker.Model.Repositories;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PeriodTracker.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class PeriodCycleController : ControllerBase
     {
         private readonly PeriodCycleRepository _periodCycleRepository;
@@ -46,7 +45,6 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<IEnumerable<PeriodCycle>> GetCyclesByUserId(int userId)
         {
-            // Check if user exists
             var user = _userRepository.GetUserById(userId);
             if (user == null)
             {
@@ -57,23 +55,6 @@ namespace PeriodTracker.API.Controllers
             return Ok(cycles);
         }
 
-        // GET: api/periodcycle/user/{userId}/average-duration
-        [HttpGet("user/{userId}/average-duration")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<double> GetAverageCycleDuration(int userId)
-        {
-            // Check if user exists
-            var user = _userRepository.GetUserById(userId);
-            if (user == null)
-            {
-                return NotFound($"User with ID {userId} not found");
-            }
-            
-            var averageDuration = _periodCycleRepository.GetAverageCycleDuration(userId);
-            return Ok(averageDuration);
-        }
-
         // POST: api/periodcycle
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -81,15 +62,13 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<PeriodCycle> CreateCycle(PeriodCycle cycle)
         {
-            // Check if user exists
-            var user = _userRepository.GetUserById(cycle.userId);
+            var user = _userRepository.GetUserById(cycle.UserId);
             if (user == null)
             {
-                return NotFound($"User with ID {cycle.userId} not found");
+                return NotFound($"User with ID {cycle.UserId} not found");
             }
 
-            // Validate that endDate is after startDate
-            if (cycle.endDate < cycle.startDate)
+            if (cycle.EndDate < cycle.StartDate)
             {
                 return BadRequest("End date must be after start date");
             }
@@ -100,7 +79,7 @@ namespace PeriodTracker.API.Controllers
                 return BadRequest("Failed to create period cycle");
             }
 
-            return CreatedAtAction(nameof(GetCycleById), new { id = cycle.cycleId }, cycle);
+            return CreatedAtAction(nameof(GetCycleById), new { id = cycle.CycleId }, cycle);
         }
 
         // PUT: api/periodcycle
@@ -110,21 +89,18 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult UpdateCycle(PeriodCycle cycle)
         {
-            // Check if cycle exists
-            var existingCycle = _periodCycleRepository.GetById(cycle.cycleId);
+            var existingCycle = _periodCycleRepository.GetById(cycle.CycleId);
             if (existingCycle == null)
             {
-                return NotFound($"Period cycle with ID {cycle.cycleId} not found");
+                return NotFound($"Period cycle with ID {cycle.CycleId} not found");
             }
             
-            // Ensure user owns the cycle
-            if (existingCycle.userId != cycle.userId)
+            if (existingCycle.UserId != cycle.UserId)
             {
                 return BadRequest("You can only update your own period cycles");
             }
 
-            // Validate that endDate is after startDate
-            if (cycle.endDate < cycle.startDate)
+            if (cycle.EndDate < cycle.StartDate)
             {
                 return BadRequest("End date must be after start date");
             }
@@ -146,23 +122,20 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public ActionResult DeleteCycle(int id, int userId)
         {
-            // Check if cycle exists
             var existingCycle = _periodCycleRepository.GetById(id);
             if (existingCycle == null)
             {
                 return NotFound($"Period cycle with ID {id} not found");
             }
             
-            // Ensure user owns the cycle
-            if (existingCycle.userId != userId)
+            if (existingCycle.UserId != userId)
             {
                 return StatusCode(StatusCodes.Status403Forbidden, "You can only delete your own period cycles");
             }
 
-            // Delete any associated symptoms first
+            // Delete associated symptoms first
             _cycleSymptomRepository.DeleteCycleSymptomsByCycleId(id);
 
-            // Delete the cycle
             bool success = _periodCycleRepository.DeleteCycle(id, userId);
             if (!success)
             {

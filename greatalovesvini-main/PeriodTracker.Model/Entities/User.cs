@@ -4,23 +4,19 @@ using System.Text.Json.Serialization;
 
 public class User
 {
-    // Keep the existing constructor
     public User(int id)
     {
-        userId = id;
+        UserId = id;
     }
     
-    // Add a parameterless constructor for JSON deserialization
     [JsonConstructor]
     public User()
     {
-        // Parameterless constructor for deserialization
     }
 
-    public int userId { get; set; }
-    public string name { get; set; }
-    public string email { get; set; }
-    public string pw { get; set; } // Database column name is pw
-    public DateTime createdAt { get; set; } = DateTime.Now;
-
+    public int UserId { get; set; }
+    public string Name { get; set; }
+    public string Email { get; set; }
+    public string Pw { get; set; } // Or better: Password
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 }

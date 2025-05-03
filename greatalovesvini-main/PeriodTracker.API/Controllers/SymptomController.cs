@@ -1,14 +1,13 @@
-using System;
-using System.Collections.Generic;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using PeriodTracker.Model.Entities;
 using PeriodTracker.Model.Repositories;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PeriodTracker.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class SymptomController : ControllerBase
     {
         private readonly SymptomRepository _symptomRepository;
@@ -23,8 +22,16 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<IEnumerable<Symptom>> GetAllSymptoms()
         {
-            var symptoms = _symptomRepository.GetAllSymptoms();
-            return Ok(symptoms);
+            try
+            {
+                var symptoms = _symptomRepository.GetAllSymptoms();
+                return Ok(symptoms);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SymptomController] Error in GetAllSymptoms: {ex.Message}");
+                return StatusCode(500, "An error occurred while retrieving symptoms");
+            }
         }
 
         // GET: api/symptom/{id}
@@ -33,13 +40,21 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<Symptom> GetSymptomById(int id)
         {
-            var symptom = _symptomRepository.GetById(id);
-            if (symptom == null)
+            try
             {
-                return NotFound($"Symptom with ID {id} not found");
+                var symptom = _symptomRepository.GetById(id);
+                if (symptom == null)
+                {
+                    return NotFound($"Symptom with ID {id} not found");
+                }
+                
+                return Ok(symptom);
             }
-            
-            return Ok(symptom);
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SymptomController] Error in GetSymptomById: {ex.Message}");
+                return StatusCode(500, "An error occurred while retrieving symptom");
+            }
         }
 
         // POST: api/symptom
@@ -48,18 +63,26 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public ActionResult<Symptom> CreateSymptom(Symptom symptom)
         {
-            if (string.IsNullOrWhiteSpace(symptom.name))
+            try
             {
-                return BadRequest("Symptom name is required");
-            }
+                if (string.IsNullOrWhiteSpace(symptom.Name))
+                {
+                    return BadRequest("Symptom name is required");
+                }
 
-            bool success = _symptomRepository.InsertSymptom(symptom);
-            if (!success)
+                bool success = _symptomRepository.InsertSymptom(symptom);
+                if (!success)
+                {
+                    return BadRequest("Failed to create symptom");
+                }
+
+                return CreatedAtAction(nameof(GetSymptomById), new { id = symptom.SymptomId }, symptom);
+            }
+            catch (Exception ex)
             {
-                return BadRequest("Failed to create symptom");
+                Console.WriteLine($"[SymptomController] Error in CreateSymptom: {ex.Message}");
+                return StatusCode(500, "An error occurred while creating symptom");
             }
-
-            return CreatedAtAction(nameof(GetSymptomById), new { id = symptom.symptomId }, symptom);
         }
 
         // PUT: api/symptom
@@ -69,25 +92,33 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult UpdateSymptom(Symptom symptom)
         {
-            // Check if symptom exists
-            var existingSymptom = _symptomRepository.GetById(symptom.symptomId);
-            if (existingSymptom == null)
+            try
             {
-                return NotFound($"Symptom with ID {symptom.symptomId} not found");
-            }
+                // Check if symptom exists
+                var existingSymptom = _symptomRepository.GetById(symptom.SymptomId);
+                if (existingSymptom == null)
+                {
+                    return NotFound($"Symptom with ID {symptom.SymptomId} not found");
+                }
 
-            if (string.IsNullOrWhiteSpace(symptom.name))
+                if (string.IsNullOrWhiteSpace(symptom.Name))
+                {
+                    return BadRequest("Symptom name is required");
+                }
+
+                bool success = _symptomRepository.UpdateSymptom(symptom);
+                if (!success)
+                {
+                    return BadRequest("Failed to update symptom");
+                }
+
+                return Ok(symptom);
+            }
+            catch (Exception ex)
             {
-                return BadRequest("Symptom name is required");
+                Console.WriteLine($"[SymptomController] Error in UpdateSymptom: {ex.Message}");
+                return StatusCode(500, "An error occurred while updating symptom");
             }
-
-            bool success = _symptomRepository.UpdateSymptom(symptom);
-            if (!success)
-            {
-                return BadRequest("Failed to update symptom");
-            }
-
-            return Ok(symptom);
         }
 
         // DELETE: api/symptom/{id}
@@ -97,20 +128,28 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public ActionResult DeleteSymptom(int id)
         {
-            // Check if symptom exists
-            var existingSymptom = _symptomRepository.GetById(id);
-            if (existingSymptom == null)
+            try
             {
-                return NotFound($"Symptom with ID {id} not found");
-            }
+                // Check if symptom exists
+                var existingSymptom = _symptomRepository.GetById(id);
+                if (existingSymptom == null)
+                {
+                    return NotFound($"Symptom with ID {id} not found");
+                }
 
-            bool success = _symptomRepository.DeleteSymptom(id);
-            if (!success)
+                bool success = _symptomRepository.DeleteSymptom(id);
+                if (!success)
+                {
+                    return BadRequest("Failed to delete symptom");
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
             {
-                return BadRequest("Failed to delete symptom");
+                Console.WriteLine($"[SymptomController] Error in DeleteSymptom: {ex.Message}");
+                return StatusCode(500, "An error occurred while deleting symptom");
             }
-
-            return NoContent();
         }
     }
 }

@@ -40,19 +40,15 @@ import { Periodcycle } from '../../models/Periodcycle';
 export class CycleFormComponent implements OnInit {
   @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
   
-  // User data
   userId: number | null = null;
-  
-  // Form handling
   cycleForm!: FormGroup;
   isLoading: boolean = false;
   errorMessage: string = '';
   isEditMode: boolean = false;
   cycleId: number | null = null;
   
-  // Date constraints
-  minDate: Date = new Date(new Date().getFullYear() - 1, 0, 1); // One year ago
-  maxDate: Date = new Date(); // Today
+  minDate: Date = new Date(new Date().getFullYear() - 1, 0, 1);
+  maxDate: Date = new Date();
   
   constructor(
     private router: Router,
@@ -79,9 +75,6 @@ export class CycleFormComponent implements OnInit {
     this.checkForEditMode();
   }
   
-  /**
-   * Initialize the form with validators
-   */
   private initForm(): void {
     this.cycleForm = this.formBuilder.group({
       startDate: ['', [Validators.required]],
@@ -90,9 +83,6 @@ export class CycleFormComponent implements OnInit {
     }, { validators: this.dateRangeValidator });
   }
   
-  /**
-   * Check URL query parameters for default date
-   */
   private checkForQueryParams(): void {
     this.route.queryParams.subscribe(params => {
       if (params['date']) {
@@ -111,9 +101,6 @@ export class CycleFormComponent implements OnInit {
     });
   }
   
-  /**
-   * Check if we're in edit mode and load cycle data if we are
-   */
   private checkForEditMode(): void {
     this.route.params.subscribe(params => {
       if (params['cycle_id']) {
@@ -124,19 +111,15 @@ export class CycleFormComponent implements OnInit {
     });
   }
   
-  /**
-   * Load cycle data for editing
-   */
   private loadCycleData(cycleId: number): void {
     this.isLoading = true;
     this.errorMessage = '';
     
     this.periodCycleService.getCycleById(cycleId).subscribe({
       next: (cycle) => {
-        // Populate form with cycle data
         this.cycleForm.patchValue({
-          startDate: new Date(cycle.start_date),
-          endDate: new Date(cycle.end_date),
+          startDate: new Date(cycle.startDate),
+          endDate: new Date(cycle.endDate),
           notes: cycle.notes || ''
         });
         
@@ -150,15 +133,11 @@ export class CycleFormComponent implements OnInit {
     });
   }
   
-  /**
-   * Custom validator to ensure end date is after start date
-   */
   private dateRangeValidator(group: FormGroup): {[key: string]: any} | null {
     const start = group.get('startDate')?.value;
     const end = group.get('endDate')?.value;
     
     if (start && end) {
-      // Convert to date objects if they're strings
       const startDate = start instanceof Date ? start : new Date(start);
       const endDate = end instanceof Date ? end : new Date(end);
       
@@ -170,12 +149,8 @@ export class CycleFormComponent implements OnInit {
     return null;
   }
   
-  /**
-   * Save the cycle data to the database
-   */
   saveCycle(): void {
     if (this.cycleForm.invalid || !this.userId) {
-      // Mark fields as touched to trigger validation messages
       Object.keys(this.cycleForm.controls).forEach(key => {
         this.cycleForm.get(key)?.markAsTouched();
       });
@@ -187,31 +162,23 @@ export class CycleFormComponent implements OnInit {
     
     const formValues = this.cycleForm.value;
     
-    // Create period cycle data with explicit userId as number
     const cycleData: Periodcycle = {
-      cycle_id: this.isEditMode && this.cycleId ? this.cycleId : 0, // Set to 0 for new cycles
-      user_id: Number(this.userId), // IMPORTANT: Explicitly convert to number
-      start_date: formValues.startDate,
-      end_date: formValues.endDate,
+      cycleId: this.isEditMode && this.cycleId ? this.cycleId : 0,
+      userId: Number(this.userId),
+      startDate: formValues.startDate,
+      endDate: formValues.endDate,
       notes: formValues.notes || '',
       duration: this.calculateDuration(formValues.startDate, formValues.endDate),
-      created_at: new Date()
+      createdAt: new Date()
     };
     
-    console.log('About to save cycle with data:', cycleData);
-    
     if (this.isEditMode && this.cycleId) {
-      // Update existing cycle
       this.updateCycle(cycleData);
     } else {
-      // Create new cycle
       this.createCycle(cycleData);
     }
   }
   
-  /**
-   * Calculate duration in days between two dates
-   */
   private calculateDuration(startDate: Date, endDate: Date): number {
     const start = startDate instanceof Date ? startDate : new Date(startDate);
     const end = endDate instanceof Date ? endDate : new Date(endDate);
@@ -219,18 +186,9 @@ export class CycleFormComponent implements OnInit {
     return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
   }
   
-  /**
-   * Create a new cycle
-   */
   private createCycle(cycle: Periodcycle): void {
-    // Double check the user_id is properly set as a number
-    cycle.user_id = Number(this.userId);
-    
-    console.log('Creating cycle with data:', cycle);
-    
     this.periodCycleService.createCycle(cycle).subscribe({
       next: (savedCycle) => {
-        console.log('Saved cycle data:', savedCycle);
         this.snackBar.open('Cycle saved successfully', 'Close', { duration: 3000 });
         this.isLoading = false;
         this.navigateBack();
@@ -239,24 +197,11 @@ export class CycleFormComponent implements OnInit {
         console.error('Error saving cycle:', error);
         this.errorMessage = 'Could not save your cycle data. Please check the API configuration.';
         this.isLoading = false;
-        
-        // Show detailed error information for debugging
-        if (error && error.status) {
-          this.errorMessage += ` (Status: ${error.status})`;
-        }
       }
     });
   }
   
-  /**
-   * Update an existing cycle
-   */
   private updateCycle(cycle: Periodcycle): void {
-    // Double check the user_id is properly set as a number
-    cycle.user_id = Number(this.userId);
-    
-    console.log('Updating cycle with data:', cycle);
-    
     this.periodCycleService.updateCycle(cycle).subscribe({
       next: () => {
         this.snackBar.open('Cycle updated successfully', 'Close', { duration: 3000 });
@@ -267,18 +212,10 @@ export class CycleFormComponent implements OnInit {
         console.error('Error updating cycle:', error);
         this.errorMessage = 'Could not update your cycle data. Please check the API configuration.';
         this.isLoading = false;
-        
-        // Show detailed error information for debugging
-        if (error && error.status) {
-          this.errorMessage += ` (Status: ${error.status})`;
-        }
       }
     });
   }
   
-  /**
-   * Open delete confirmation dialog
-   */
   openDeleteConfirmation(): void {
     const dialogRef = this.dialog.open(this.deleteDialog);
     
@@ -289,13 +226,9 @@ export class CycleFormComponent implements OnInit {
     });
   }
   
-  /**
-   * Delete a cycle
-   */
   deleteCycle(cycleId: number): void {
     if (!this.userId) return;
     
-    // Ensure userId is a number
     const userId = Number(this.userId);
     
     this.isLoading = true;
@@ -310,39 +243,19 @@ export class CycleFormComponent implements OnInit {
         console.error('Error deleting cycle:', error);
         this.errorMessage = 'Could not delete the cycle. Please try again.';
         this.isLoading = false;
-        
-        // Show detailed error information for debugging
-        if (error && error.status) {
-          this.errorMessage += ` (Status: ${error.status})`;
-        }
       }
     });
   }
   
-  /**
-   * Navigate back to previous page or dashboard
-   */
   navigateBack(): void {
-    // Check if we can go back in history
     if (window.history.length > 1) {
       window.history.back();
     } else {
-      // Default to dashboard
       this.router.navigate(['/dashboard']);
     }
   }
   
-  /**
-   * Cancel form and navigate back
-   */
   cancel(): void {
     this.navigateBack();
-  }
-  
-  /**
-   * Format button text
-   */
-  formatSliderThumbValue(value: number): string {
-    return value.toString();
   }
 }

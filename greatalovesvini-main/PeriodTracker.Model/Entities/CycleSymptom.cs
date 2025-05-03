@@ -1,32 +1,28 @@
 using System.Text.Json.Serialization;
-
-namespace PeriodTracker.Model.Entities;
+using PeriodTracker.Model.Entities;
 
 public class CycleSymptom
 {
     public CycleSymptom(int id)
     {
-        cycleSymptomId = id;
+        CycleSymptomId = id;
     }
 
-    // Parameterless constructor for JSON deserialization
     [JsonConstructor]
     public CycleSymptom()
     {
-        // Parameterless constructor for deserialization
     }
 
-    public int cycleSymptomId { get; set; }
-    public int cycleId { get; set; }
-    public int symptomId { get; set; }
-    public int intensity { get; set; }
-    public DateTime date { get; set; }
-    public DateTime createdAt { get; set; } = DateTime.Now;
+    public int CycleSymptomId { get; set; }
+    public int CycleId { get; set; }
+    public int SymptomId { get; set; }
+    public int Intensity { get; set; }
+    public DateTime Date { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-    // Navigation properties
-    [JsonIgnore] // Prevent circular references
+    [JsonIgnore]
     public PeriodCycle PeriodCycle { get; set; }
     
-    [JsonIgnore] // Prevent circular references
+    [JsonIgnore]
     public Symptom Symptom { get; set; }
 }

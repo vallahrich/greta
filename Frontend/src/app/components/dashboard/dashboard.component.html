@@ -78,9 +78,9 @@
           <mat-card-content>
             <div class="cycle-dates">
               <div class="date-range">
-                <span class="start-date">{{cycle.start_date | date:'mediumDate'}}</span>
+                <span class="start-date">{{cycle.startDate | date:'mediumDate'}}</span>
                 <span class="date-separator">to</span>
-                <span class="end-date">{{cycle.end_date | date:'mediumDate'}}</span>
+                <span class="end-date">{{cycle.endDate | date:'mediumDate'}}</span>
               </div>
               <div class="cycle-duration">
                 <span class="duration-value">{{cycle.duration}}</span>
@@ -88,7 +88,7 @@
               </div>
             </div>
             <div class="cycle-actions">
-              <button mat-icon-button [routerLink]="['/cycle/edit', cycle.cycle_id]">
+              <button mat-icon-button [routerLink]="['/cycle/edit', cycle.cycleId]">
                 <mat-icon>edit</mat-icon>
               </button>
             </div>

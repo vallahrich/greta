@@ -23,47 +23,59 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public ActionResult Login([FromBody] LoginRequest credentials)
         {
-            // Check credentials
-            bool isAuthenticated = false;
-            User user = null;
-            
-            // Check for test user first
-            if (credentials.Email == "john.doe" && credentials.Password == "VerySecret!")
+            try
             {
-                isAuthenticated = true;
-            }
-            else
-            {
-                // Check against database using email
-                user = _userRepository.GetUserByEmail(credentials.Email);
+                if (string.IsNullOrWhiteSpace(credentials.Email) || string.IsNullOrWhiteSpace(credentials.Password))
+                {
+                    return BadRequest("Email and password are required");
+                }
+
+                // Check for test user first
+                bool isAuthenticated = false;
+                User user = null;
                 
-                if (user != null && user.pw == credentials.Password)
+                if (credentials.Email == "john.doe" && credentials.Password == "VerySecret!")
                 {
                     isAuthenticated = true;
                 }
-            }
-            
-            if (isAuthenticated)
-            {
-                // Create the auth header token
-                var text = $"{credentials.Email}:{credentials.Password}";
-                var bytes = Encoding.UTF8.GetBytes(text);
-                var encodedCredentials = Convert.ToBase64String(bytes);
-                var headerValue = $"Basic {encodedCredentials}";
-                
-                // Include user details in the response (excluding sensitive data like password)
-                var response = new
+                else
                 {
-                    headerValue = headerValue,
-                    userId = user?.userId,
-                    name = user?.name ?? "John Doe", // Use test name if test user
-                    email = credentials.Email
-                };
+                    // Check against database using email
+                    user = _userRepository.GetUserByEmail(credentials.Email);
+                    
+                    if (user != null && user.Pw == credentials.Password)
+                    {
+                        isAuthenticated = true;
+                    }
+                }
                 
-                return Ok(response);
+                if (isAuthenticated)
+                {
+                    // Create the auth header token
+                    var text = $"{credentials.Email}:{credentials.Password}";
+                    var bytes = Encoding.UTF8.GetBytes(text);
+                    var encodedCredentials = Convert.ToBase64String(bytes);
+                    var headerValue = $"Basic {encodedCredentials}";
+                    
+                    // Include user details in the response (excluding sensitive data like password)
+                    var response = new
+                    {
+                        headerValue = headerValue,
+                        userId = user?.UserId,
+                        name = user?.Name ?? "John Doe", // Use test name if test user
+                        email = credentials.Email
+                    };
+                    
+                    return Ok(response);
+                }
+                
+                return Unauthorized("Invalid email or password");
             }
-            
-            return Unauthorized("Invalid email or password");
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AuthController] Error in Login: {ex.Message}");
+                return StatusCode(500, "An error occurred during login");
+            }
         }
 
         [AllowAnonymous]
@@ -73,42 +85,50 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         public ActionResult Register([FromBody] RegisterRequest request)
         {
-            // Validate the request
-            if (string.IsNullOrWhiteSpace(request.Name) || 
-                string.IsNullOrWhiteSpace(request.Email) || 
-                string.IsNullOrWhiteSpace(request.Password))
+            try
             {
-                return BadRequest("Name, email and password are required");
-            }
-            
-            // Check if email already exists
-            if (_userRepository.EmailExists(request.Email))
-            {
-                return Conflict($"Email '{request.Email}' already exists");
-            }
+                // Validate the request
+                if (string.IsNullOrWhiteSpace(request.Name) || 
+                    string.IsNullOrWhiteSpace(request.Email) || 
+                    string.IsNullOrWhiteSpace(request.Password))
+                {
+                    return BadRequest("Name, email and password are required");
+                }
+                
+                // Check if email already exists
+                if (_userRepository.EmailExists(request.Email))
+                {
+                    return Conflict($"Email '{request.Email}' already exists");
+                }
 
-            // Create user object
-            var user = new User
-            {
-                name = request.Name,
-                email = request.Email,
-                pw = request.Password, // In a production environment, hash this password
-                createdAt = DateTime.UtcNow
-            };
+                // Create user object
+                var user = new User
+                {
+                    Name = request.Name,
+                    Email = request.Email,
+                    Pw = request.Password, // In a production environment, hash this password
+                    CreatedAt = DateTime.UtcNow
+                };
 
-            bool success = _userRepository.InsertUser(user);
-            if (!success)
-            {
-                return BadRequest("Failed to create user");
+                bool success = _userRepository.InsertUser(user);
+                if (!success)
+                {
+                    return BadRequest("Failed to create user");
+                }
+
+                // Return a success response with the created user details (excluding password)
+                return CreatedAtAction(nameof(Login), new { }, new 
+                { 
+                    userId = user.UserId, 
+                    name = user.Name, 
+                    email = user.Email 
+                });
             }
-
-            // Return a success response with the created user details (excluding password)
-            return CreatedAtAction(nameof(Login), new { }, new 
-            { 
-                userId = user.userId, 
-                name = user.name, 
-                email = user.email 
-            });
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AuthController] Error in Register: {ex.Message}");
+                return StatusCode(500, "An error occurred during registration");
+            }
         }
         
         // Optional: Add logout functionality if needed on the server-side

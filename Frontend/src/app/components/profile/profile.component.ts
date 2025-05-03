@@ -140,7 +140,7 @@ export class ProfileComponent implements OnInit {
       next: (data) => {
         console.log('User data loaded:', data);
         this.user = data;
-        this.userId = data.user_id;
+        this.userId = data.userId;
         this.populateForm(data);
         this.isLoading = false;
         this.retryCount = 0; // Reset retry count on success

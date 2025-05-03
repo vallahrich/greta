@@ -1,5 +1,5 @@
 export interface Symptom {
-    symptom_id: number;
+    symptomId: number;
     name: string;
     icon?: string;
 }

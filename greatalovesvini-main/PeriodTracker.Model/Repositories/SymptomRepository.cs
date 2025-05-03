@@ -24,10 +24,11 @@ namespace PeriodTracker.Model.Repositories
                 var data = GetData(dbConn, cmd);
                 if (data != null && data.Read())
                 {
-                    return new Symptom(Convert.ToInt32(data["symptom_id"]))
+                    return new Symptom
                     {
-                        name = data["name"].ToString(),
-                        icon = data["icon"]?.ToString()
+                        SymptomId = Convert.ToInt32(data["symptom_id"]),
+                        Name = data["name"].ToString(),
+                        Icon = data["icon"]?.ToString()
                     };
                 }
                 return null;
@@ -53,12 +54,12 @@ namespace PeriodTracker.Model.Repositories
                 {
                     while (data.Read())
                     {
-                        Symptom symptom = new Symptom(Convert.ToInt32(data["symptom_id"]))
+                        symptoms.Add(new Symptom
                         {
-                            name = data["name"].ToString(),
-                            icon = data["icon"]?.ToString()
-                        };
-                        symptoms.Add(symptom);
+                            SymptomId = Convert.ToInt32(data["symptom_id"]),
+                            Name = data["name"].ToString(),
+                            Icon = data["icon"]?.ToString()
+                        });
                     }
                 }
                 return symptoms;
@@ -77,19 +78,16 @@ namespace PeriodTracker.Model.Repositories
                 dbConn = new NpgsqlConnection(ConnectionString);
                 var cmd = dbConn.CreateCommand();
                 cmd.CommandText = @"
-                    INSERT INTO Symptoms 
-                    (name, icon)
-                    VALUES 
-                    (@name, @icon)
+                    INSERT INTO Symptoms (name, icon)
+                    VALUES (@name, @icon)
                     RETURNING symptom_id";
                 
-                cmd.Parameters.AddWithValue("@name", NpgsqlDbType.Varchar, symptom.name);
-                cmd.Parameters.AddWithValue("@icon", NpgsqlDbType.Varchar, (object)symptom.icon ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@name", NpgsqlDbType.Varchar, symptom.Name);
+                cmd.Parameters.AddWithValue("@icon", NpgsqlDbType.Varchar, (object)symptom.Icon ?? DBNull.Value);
                 
                 dbConn.Open();
-                // Get the newly created symptom ID
                 var symptomId = Convert.ToInt32(cmd.ExecuteScalar());
-                symptom.symptomId = symptomId;
+                symptom.SymptomId = symptomId;
                 
                 return true;
             }
@@ -116,12 +114,11 @@ namespace PeriodTracker.Model.Repositories
                     icon = @icon
                     WHERE symptom_id = @symptomId";
                 
-                cmd.Parameters.AddWithValue("@name", NpgsqlDbType.Varchar, symptom.name);
-                cmd.Parameters.AddWithValue("@icon", NpgsqlDbType.Varchar, (object)symptom.icon ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@symptomId", NpgsqlDbType.Integer, symptom.symptomId);
+                cmd.Parameters.AddWithValue("@name", NpgsqlDbType.Varchar, symptom.Name);
+                cmd.Parameters.AddWithValue("@icon", NpgsqlDbType.Varchar, (object)symptom.Icon ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@symptomId", NpgsqlDbType.Integer, symptom.SymptomId);
                 
-                bool result = UpdateData(dbConn, cmd);
-                return result;
+                return UpdateData(dbConn, cmd);
             }
             finally
             {
@@ -139,8 +136,7 @@ namespace PeriodTracker.Model.Repositories
                 cmd.CommandText = "DELETE FROM Symptoms WHERE symptom_id = @id";
                 cmd.Parameters.AddWithValue("@id", NpgsqlDbType.Integer, id);
                 
-                bool result = DeleteData(dbConn, cmd);
-                return result;
+                return DeleteData(dbConn, cmd);
             }
             finally
             {
