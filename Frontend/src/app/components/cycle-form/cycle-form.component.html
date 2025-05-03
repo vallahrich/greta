@@ -1,51 +1,83 @@
-<!-- Symptom Dialog -->
-<ng-template #symptomDialog>
-  <h2 mat-dialog-title>{{currentSymptom ? 'Edit Symptom' : 'Add Symptom'}}</h2>
+<div class="cycle-form-container">
+  <!-- Header -->
+  <header class="form-header">
+    <button mat-icon-button (click)="navigateBack()">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>{{ isEditMode ? 'Edit Cycle' : 'Add New Cycle' }}</h1>
+    <div class="spacer"></div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="form-content">
+    <!-- Loading Indicator -->
+    <div *ngIf="isLoading" class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="error-message">
+      {{errorMessage}}
+    </div>
+
+    <!-- Cycle Form -->
+    <div class="form-section" *ngIf="!isLoading">
+      <h2>Cycle Details</h2>
+      <form [formGroup]="cycleForm">
+        <!-- Date Range -->
+        <div class="date-fields">
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Start Date</mat-label>
+            <input matInput [matDatepicker]="startPicker" formControlName="startDate" [min]="minDate" [max]="maxDate">
+            <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+            <mat-error *ngIf="cycleForm.get('startDate')?.hasError('required')">
+              Start date is required
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>End Date</mat-label>
+            <input matInput [matDatepicker]="endPicker" formControlName="endDate" [min]="minDate" [max]="maxDate">
+            <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+            <mat-error *ngIf="cycleForm.get('endDate')?.hasError('required')">
+              End date is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div *ngIf="cycleForm.hasError('dateRange')" class="date-range-error">
+          End date must be after start date
+        </div>
+
+        <!-- Notes Field -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Notes</mat-label>
+          <textarea matInput formControlName="notes" rows="3" placeholder="Add any notes about this cycle here"></textarea>
+        </mat-form-field>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <button mat-button (click)="cancel()">Cancel</button>
+          <button mat-raised-button color="warn" *ngIf="isEditMode" (click)="openDeleteConfirmation()">Delete</button>
+          <button mat-raised-button color="primary" [disabled]="cycleForm.invalid || isLoading" (click)="saveCycle()">
+            {{ isEditMode ? 'Update' : 'Save' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Dialog -->
+<ng-template #deleteDialog>
+  <h2 mat-dialog-title>Delete Cycle</h2>
   <mat-dialog-content>
-    <form [formGroup]="symptomForm">
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Symptom</mat-label>
-        <mat-select formControlName="symptomId">
-          <mat-option *ngFor="let symptom of availableSymptoms" [value]="symptom.symptom_id">
-            {{symptom.name}}
-          </mat-option>
-        </mat-select>
-        <mat-error *ngIf="symptomForm.get('symptomId')?.hasError('required')">
-          Please select a symptom
-        </mat-error>
-      </mat-form-field>
-      
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Date</mat-label>
-        <input matInput [matDatepicker]="symptomDatePicker" formControlName="date">
-        <mat-datepicker-toggle matIconSuffix [for]="symptomDatePicker"></mat-datepicker-toggle>
-        <mat-datepicker #symptomDatePicker></mat-datepicker>
-        <mat-error *ngIf="symptomForm.get('date')?.hasError('required')">
-          Date is required
-        </mat-error>
-        <mat-error *ngIf="symptomForm.get('date')?.hasError('dateOutOfRange')">
-          Date must be within cycle date range
-        </mat-error>
-      </mat-form-field>
-      
-      <div class="intensity-field">
-        <label>Intensity (1-5):</label>
-        <mat-slider
-          min="1"
-          max="5"
-          step="1"
-          discrete
-          [displayWith]="formatSliderThumbValue"
-          class="full-width">
-          <input matSliderThumb formControlName="intensity">
-        </mat-slider>
-      </div>
-    </form>
+    <p>Are you sure you want to delete this cycle? This action cannot be undone.</p>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-raised-button color="primary" [disabled]="symptomForm.invalid" (click)="saveSymptom()">
-      Save
-    </button>
+    <button mat-raised-button color="warn" [mat-dialog-close]="true">Delete</button>
   </mat-dialog-actions>
 </ng-template>
