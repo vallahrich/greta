@@ -42,8 +42,8 @@ interface CycleWithSymptoms extends Periodcycle {
     MatProgressSpinnerModule,
     MatSnackBarModule
   ],
-  templateUrl: './dashboard-page.component.html',
-  styleUrls: ['./dashboard-page.component.css']
+  templateUrl: './dashboard.component.html',
+  styleUrls: ['./dashboard.component.css']
 })
 export class DashboardPageComponent implements OnInit {
   /** List of latest cycles enriched with symptoms for display */

@@ -33,8 +33,8 @@ export class AuthService {
   }
 
   login(email: string, password: string): Observable<any> {
-    // Bypass ALL URL construction by using the direct URL from the backend controller
-    const loginUrl = `${this.BASE_URL}/api/auth/login`;
+    // COMPLETELY hardcoded URL - no string interpolation at all
+    const loginUrl = 'http://localhost:5113/api/auth/login';
     console.log(`Making login request to: ${loginUrl}`);
     
     return this.http.post<any>(

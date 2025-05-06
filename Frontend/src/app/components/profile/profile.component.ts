@@ -46,8 +46,8 @@ import { User } from '../../models/User';
     MatProgressSpinnerModule,
     MatMenuModule,
   ],
-  templateUrl: './profile-page.component.html',
-  styleUrls: ['./profile-page.component.css']
+  templateUrl: './profile.component.html',
+  styleUrls: ['./profile.component.css']
 })
 export class ProfilePageComponent implements OnInit {
   // TemplateRef for the delete confirmation dialog

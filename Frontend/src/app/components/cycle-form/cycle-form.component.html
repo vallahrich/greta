@@ -64,10 +64,10 @@
             <!-- Symptoms -->
             <h3 class="symptoms-title">Symptoms</h3>
             <div formArrayName="symptoms" class="symptoms-list">
-              @for (ctrl of symptoms.controls; let i = index; track i) {
-                <div [formGroupName]="i" class="symptom-row">
+              @for (ctrl of symptoms.controls; track ctrl) {
+                <div [formGroupName]="$index" class="symptom-row">
                   <mat-checkbox formControlName="selected">
-                    {{ allSymptoms[i].name }}
+                    {{ allSymptoms[$index].name }}
                   </mat-checkbox>
                   @if (ctrl.get('selected')?.value) {
                     <mat-form-field appearance="outline" class="intensity-field">

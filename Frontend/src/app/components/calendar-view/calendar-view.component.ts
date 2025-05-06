@@ -43,8 +43,8 @@ interface CalendarDay {
     MatCardModule,
     MatMenuModule
   ],
-  templateUrl: './calendar-page.component.html',
-  styleUrls: ['./calendar-page.component.css']
+  templateUrl: './calendar-view.component.html',
+  styleUrls: ['./calendar-view.component.css']
 })
 export class CalendarPageComponent implements OnInit {
   currentDate: Date = new Date();      // tracks displayed month

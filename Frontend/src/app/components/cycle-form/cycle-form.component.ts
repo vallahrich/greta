@@ -52,8 +52,8 @@ import { CreateCycleSymptomDto } from '../../models/CycleSymptom';
     MatProgressSpinnerModule,
     MatCheckboxModule
   ],
-  templateUrl: './cycle-form-page.component.html',
-  styleUrls: ['./cycle-form-page.component.css']
+  templateUrl: './cycle-form.component.html',
+  styleUrls: ['./cycle-form.component.css']
 })
 export class CycleFormPageComponent implements OnInit {
   // Reference to the delete confirmation dialog template
