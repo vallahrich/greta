@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { Symptom } from '../models/Symptom';
 import { environment } from '../environments/environment';
 
+//SymptomService fetches the list of available symptoms from the backend
 @Injectable({
   providedIn: 'root'
 })
@@ -14,21 +15,5 @@ export class SymptomService {
   
   getAllSymptoms(): Observable<Symptom[]> {
     return this.http.get<Symptom[]>(this.baseUrl);
-  }
-  
-  getSymptomById(id: number): Observable<Symptom> {
-    return this.http.get<Symptom>(`${this.baseUrl}/${id}`);
-  }
-  
-  createSymptom(symptom: Symptom): Observable<Symptom> {
-    return this.http.post<Symptom>(this.baseUrl, symptom);
-  }
-  
-  updateSymptom(symptom: Symptom): Observable<any> {
-    return this.http.put(this.baseUrl, symptom);
-  }
-  
-  deleteSymptom(id: number): Observable<any> {
-    return this.http.delete(`${this.baseUrl}/${id}`);
   }
 }

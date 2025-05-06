@@ -19,6 +19,12 @@ import { UserService } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
 import { User } from '../../models/User';
 
+/**
+ * ProfileComponent
+ * - Displays and edits the logged-in user’s profile
+ * - Allows changing name, email (read-only), and password
+ * - Supports account deletion with confirmation dialog
+ */
 @Component({
   selector: 'app-profile',
   standalone: true,
@@ -28,7 +34,7 @@ import { User } from '../../models/User';
     FormsModule,
     ReactiveFormsModule,
 
-    // Material
+    // Material modules for UI elements
     MatIconModule,
     MatCardModule,
     MatButtonModule,
@@ -44,6 +50,7 @@ import { User } from '../../models/User';
   styleUrls: ['./profile.component.css']
 })
 export class ProfileComponent implements OnInit {
+  // TemplateRef for the delete confirmation dialog
   @ViewChild('deleteAccountDialog') deleteAccountDialog!: TemplateRef<any>;
 
   user: User | null = null;
@@ -72,26 +79,41 @@ export class ProfileComponent implements OnInit {
     private location: Location
   ) { }
 
+  /**
+  * Angular lifecycle hook: initialize forms and load user data
+  */
   ngOnInit(): void {
+    // Build the profile form; email field is disabled (read-only)
     this.profileForm = this.fb.group({
       name: ['', Validators.required],
       email: [{ value: '', disabled: true }]
     });
-    
+
+    // Build the password form with matching validation
     this.passwordForm = this.fb.group({
       newPassword: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', Validators.required]
     }, { validators: this.passwordMatch });
 
+    // Fetch the user's current data from the server
     this.loadUserData();
   }
 
+   /**
+   * Custom validator: ensures newPassword and confirmPassword match
+   */
   private passwordMatch(group: FormGroup) {
     const np = group.get('newPassword')?.value;
     const cp = group.get('confirmPassword')?.value;
     return np && cp && np !== cp ? { passwordMismatch: true } : null;
   }
 
+  /**
+   * Loads the authenticated user's profile from the API
+   * - Gets email from AuthService
+   * - Calls UserService.getUserByEmail
+   * - Patches form values with the returned data
+   */
   loadUserData(): void {
     this.isLoading = true;
     this.errorMessage = '';
@@ -127,6 +149,9 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  /**
+   * Submits the profile form to update the user's display name
+   */
   updateProfile(): void {
     if (this.profileForm.invalid || !this.user) return;
     this.isProfileUpdating = true;
@@ -146,6 +171,9 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  /**
+   * Submits the password form to change the user's password
+   */
   updatePassword(): void {
     if (this.passwordForm.invalid || !this.user || this.user.userId == null) return;
     this.isPasswordUpdating = true;
@@ -167,6 +195,9 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  /**
+   * Opens a confirmation dialog before deleting the account
+   */
   openDeleteDialog(): void {
     this.deleteConfirmation = '';
     const ref = this.dialog.open(this.deleteAccountDialog, { width: '400px' });
@@ -177,6 +208,9 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  /**
+   * Calls UserService.deleteUser and logs out on success
+   */
   private deleteAccount(): void {
     if (!this.userId) return;
     this.isLoading = true;

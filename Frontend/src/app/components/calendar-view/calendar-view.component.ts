@@ -1,4 +1,3 @@
-// Updated calendar-view.component.ts (removing interaction functionality)
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -12,10 +11,11 @@ import { PeriodCycleService } from '../../services/periodcycle.service';
 import { Periodcycle } from '../../models/Periodcycle';
 import { AuthService } from '../../services/auth.service';
 
+// Defines the shape of each day in the calendar grid
 interface CalendarDay {
   day: number | null;
   date: Date | null;
-  active: boolean;
+  active: boolean;           // highlights if any cycle event
   isPeriod: boolean;
   isFertile: boolean;
   isOvulation: boolean;
@@ -27,9 +27,9 @@ interface CalendarDay {
   selector: 'app-calendar-view',
   standalone: true,
   imports: [
-    CommonModule, 
+    CommonModule,
     RouterModule,
-    MatProgressSpinnerModule, 
+    MatProgressSpinnerModule,
     MatIconModule,
     MatButtonModule,
     MatCardModule,
@@ -39,18 +39,18 @@ interface CalendarDay {
   styleUrls: ['./calendar-view.component.css']
 })
 export class CalendarViewComponent implements OnInit {
-  currentDate: Date = new Date();
-  currentMonth: string = '';
+  currentDate: Date = new Date();      // tracks displayed month
+  currentMonth: string = '';           // formatted month/year label
   currentYear: number = 0;
-  
-  weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  monthDays: CalendarDay[] = [];
-  
-  userId: number | null = null;
-  cycleData: Periodcycle[] = [];
-  
-  isLoading: boolean = false;
-  errorMessage: string = '';
+
+  weekDays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  monthDays: CalendarDay[] = [];       // array for grid cells
+
+  userId: number | null = null;       // logged-in user ID
+  cycleData: Periodcycle[] = [];      // loaded cycle records
+
+  isLoading = false;                  // spinner flag
+  errorMessage = '';
 
   constructor(
     private router: Router,
@@ -59,166 +59,132 @@ export class CalendarViewComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // Retrieve authenticated user ID
     this.userId = this.authService.getUserId();
     if (!this.userId) {
       this.errorMessage = 'User ID not found. Please log in again.';
       return;
     }
-    
+
     this.initializeCalendarState();
     this.loadCalendarData();
   }
 
+  // Sets the year and month label based on currentDate
   private initializeCalendarState(): void {
     this.currentYear = this.currentDate.getFullYear();
     this.updateMonthDisplay();
   }
-  
   private updateMonthDisplay(): void {
     this.currentMonth = this.currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
   }
 
+  // Fetch cycles then build the grid
   private loadCalendarData(): void {
     if (!this.userId) return;
-    
     this.isLoading = true;
     this.errorMessage = '';
-    
+
     this.periodCycleService.getCyclesByUserId(this.userId).subscribe({
-      next: (cycles) => {
-        console.log('Loaded cycles:', cycles);
+      next: cycles => {
         this.cycleData = cycles;
         this.generateCalendarGrid();
         this.isLoading = false;
       },
-      error: (err) => {
-        console.error('Error loading calendar data:', err);
+      error: err => {
         this.errorMessage = 'Could not load calendar data. Please try again later.';
         this.isLoading = false;
-        this.generateCalendarGrid();
+        this.generateCalendarGrid();  // still render empty grid
       }
     });
   }
 
+  // Build month grid including empty slots and status flags
   private generateCalendarGrid(): void {
     const year = this.currentDate.getFullYear();
     const month = this.currentDate.getMonth();
-    
-    const firstDayOfMonth = new Date(year, month, 1);
-    const lastDayOfMonth = new Date(year, month + 1, 0);
-    const daysInMonth = lastDayOfMonth.getDate();
-    
-    let firstDayWeekday = firstDayOfMonth.getDay() - 1;
-    if (firstDayWeekday < 0) firstDayWeekday = 6;
-    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+
+    let offset = firstDay.getDay() - 1;
+    if (offset < 0) offset = 6;
+
     this.monthDays = [];
-    
-    // Add empty cells
-    for (let i = 0; i < firstDayWeekday; i++) {
-      this.monthDays.push({
-        day: null,
-        date: null,
-        active: false,
-        isPeriod: false,
-        isFertile: false,
-        isOvulation: false,
-        isToday: false
-      });
+    // prepend empty cells
+    for (let i = 0; i < offset; i++) {
+      this.monthDays.push(this.createEmptyCell());
     }
-    
+
     const today = new Date();
-    
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day);
-      const periodInfo = this.getDayInfo(date);
+    // fill days
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(year, month, d);
+      const info = this.getDayInfo(date);
       const isToday = this.isSameDay(date, today);
-      
       this.monthDays.push({
-        day: day,
-        date: date,
-        active: periodInfo.isPeriod || periodInfo.isFertile || periodInfo.isOvulation,
-        isPeriod: periodInfo.isPeriod,
-        isFertile: periodInfo.isFertile,
-        isOvulation: periodInfo.isOvulation,
-        isToday: isToday,
-        cycleId: periodInfo.cycleId
+        day: d,
+        date,
+        active: info.isPeriod || info.isFertile || info.isOvulation,
+        isPeriod: info.isPeriod,
+        isFertile: info.isFertile,
+        isOvulation: info.isOvulation,
+        isToday,
+        cycleId: info.cycleId
       });
     }
-    
-    // Add remaining empty cells
-    const totalCells = Math.ceil((firstDayWeekday + daysInMonth) / 7) * 7;
-    const remainingCells = totalCells - (firstDayWeekday + daysInMonth);
-    
-    for (let i = 0; i < remainingCells; i++) {
-      this.monthDays.push({
-        day: null,
-        date: null,
-        active: false,
-        isPeriod: false,
-        isFertile: false,
-        isOvulation: false,
-        isToday: false
-      });
+    // append empty cells to complete rows
+    const total = Math.ceil((offset + daysInMonth) / 7) * 7;
+    while (this.monthDays.length < total) {
+      this.monthDays.push(this.createEmptyCell());
     }
   }
-  
-  private getDayInfo(date: Date): { isPeriod: boolean, isFertile: boolean, isOvulation: boolean, cycleId?: number } {
-    let isPeriod = false;
-    let isFertile = false;
-    let isOvulation = false;
-    let cycleId;
-    
+
+  // Returns status flags for a given date based on loaded cycles
+  private getDayInfo(date: Date): { isPeriod: boolean; isFertile: boolean; isOvulation: boolean; cycleId?: number } {
+    let isPeriod = false, isFertile = false, isOvulation = false;
+    let cycleId: number | undefined;
+
     for (const cycle of this.cycleData) {
-      const startDate = new Date(cycle.startDate);
-      const endDate = new Date(cycle.endDate);
-      
-      if (date >= startDate && date <= endDate) {
+      const start = new Date(cycle.startDate);
+      const end = new Date(cycle.endDate);
+      if (date >= start && date <= end) {
         isPeriod = true;
         cycleId = cycle.cycleId;
       }
-      
-      const ovulationDate = this.calculateOvulationDate(cycle);
-      
-      if (ovulationDate) {
-        const fertileStart = new Date(ovulationDate);
-        fertileStart.setDate(ovulationDate.getDate() - 5);
-        
-        if (date >= fertileStart && date <= ovulationDate) {
-          isFertile = true;
-          if (!cycleId) cycleId = cycle.cycleId;
-        }
-        
-        if (this.isSameDay(date, ovulationDate)) {
-          isOvulation = true;
-          isFertile = false;
-          if (!cycleId) cycleId = cycle.cycleId;
-        }
+      const ovDate = this.calculateOvulationDate(cycle);
+      if (ovDate) {
+        const fertileStart = new Date(ovDate);
+        fertileStart.setDate(ovDate.getDate() - 5);
+        if (date >= fertileStart && date <= ovDate) isFertile = true;
+        if (this.isSameDay(date, ovDate)) { isOvulation = true; isFertile = false; }
+        if (!cycleId && (isFertile || isOvulation)) cycleId = cycle.cycleId;
       }
     }
-    
     return { isPeriod, isFertile, isOvulation, cycleId };
   }
-  
-  private calculateOvulationDate(cycle: Periodcycle): Date | null {
-    const startDate = new Date(cycle.startDate);
-    const ovulationDate = new Date(startDate);
-    ovulationDate.setDate(startDate.getDate() + 14);
-    return ovulationDate;
-  }
-  
-  private isSameDay(date1: Date, date2: Date): boolean {
-    return date1.getFullYear() === date2.getFullYear() &&
-           date1.getMonth() === date2.getMonth() &&
-           date1.getDate() === date2.getDate();
+
+  // Predicts ovulation as startDate + 14 days
+  private calculateOvulationDate(cycle: Periodcycle): Date {
+    const d = new Date(cycle.startDate);
+    d.setDate(d.getDate() + 14);
+    return d;
   }
 
+  // Strict same-day comparison
+  private isSameDay(a: Date, b: Date): boolean {
+    return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  }
+
+  // Change displayed month and reload data
   navigateMonth(direction: number): void {
-    const newDate = new Date(this.currentDate);
-    newDate.setMonth(newDate.getMonth() + direction);
-    this.currentDate = newDate;
-    this.currentYear = newDate.getFullYear();
-    this.updateMonthDisplay();
+    this.currentDate.setMonth(this.currentDate.getMonth() + direction);
+    this.initializeCalendarState();
     this.loadCalendarData();
+  }
+
+  // Creates an empty calendar cell
+  private createEmptyCell(): CalendarDay {
+    return { day: null, date: null, active: false, isPeriod: false, isFertile: false, isOvulation: false, isToday: false };
   }
 }

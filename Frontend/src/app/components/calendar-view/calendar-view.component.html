@@ -1,10 +1,14 @@
+<!-- Container for the entire calendar screen -->
 <div class="calendar-container">
+  <!-- Header: title and menu actions -->
   <header class="calendar-header">
     <h1>Period Calendar</h1>
     <div class="header-actions">
+      <!-- Menu trigger opens Angular Material menu -->
       <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Menu">
         <mat-icon>menu</mat-icon>
       </button>
+      <!-- Dropdown menu with navigation links -->
       <mat-menu #menu="matMenu">
         <button mat-menu-item routerLink="/dashboard">
           <mat-icon>home</mat-icon>
@@ -18,55 +22,57 @@
     </div>
   </header>
 
+  <!-- Main content: calendar and legend -->
   <div class="calendar-content">
-    <!-- Month navigation -->
+    <!-- Month navigation: back/forward buttons and month label -->
     <div class="month-navigation">
       <button mat-icon-button class="nav-button" (click)="navigateMonth(-1)">
         <mat-icon>navigate_before</mat-icon>
       </button>
-      <h2 class="current-month">{{currentMonth}}</h2>
+      <h2 class="current-month">{{ currentMonth }}</h2>
       <button mat-icon-button class="nav-button" (click)="navigateMonth(1)">
         <mat-icon>navigate_next</mat-icon>
       </button>
     </div>
 
-    <!-- Loading indicator -->
+    <!-- Loading state spinner -->
     <div *ngIf="isLoading" class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
     
-    <!-- Error message -->
+    <!-- Error message display -->
     <div *ngIf="errorMessage" class="error-message">
-      {{errorMessage}}
+      {{ errorMessage }}
     </div>
     
-    <!-- Calendar grid -->
+    <!-- Calendar grid: shown when not loading -->
     <div *ngIf="!isLoading" class="calendar-grid">
-      <!-- Weekday headers -->
+      <!-- Weekday headings row -->
       <div class="weekday-header">
-        <div class="weekday" *ngFor="let day of weekDays">{{day}}</div>
+        <div class="weekday" *ngFor="let day of weekDays">{{ day }}</div>
       </div>
       
-      <!-- Calendar days -->
+      <!-- Days of the month rendered as grid cells -->
       <div class="month-grid">
-        <div *ngFor="let day of monthDays" 
-             class="month-day" 
+        <div *ngFor="let day of monthDays"
+             class="month-day"
              [ngClass]="{
-               'active': day.active, 
+               'active': day.active,
                'empty': day.day === null,
                'period': day.isPeriod,
                'fertile': day.isFertile,
                'ovulation': day.isOvulation,
                'today': day.isToday
              }">
+          <!-- Only render day number if not an empty placeholder -->
           <div class="day-content" *ngIf="day.day !== null">
-            <span class="day-number">{{day.day}}</span>
+            <span class="day-number">{{ day.day }}</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Legend -->
+    <!-- Legend explaining color codes -->
     <div class="legend">
       <div class="legend-item">
         <div class="legend-circle period"></div>
@@ -83,7 +89,7 @@
     </div>
   </div>
 
-  <!-- Navigation Footer -->
+  <!-- Bottom navigation bar with primary routes -->
   <nav class="calendar-nav">
     <a mat-raised-button routerLink="/dashboard">
       <mat-icon>home</mat-icon> Dashboard

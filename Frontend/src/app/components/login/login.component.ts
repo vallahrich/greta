@@ -13,6 +13,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 import { AuthService } from '../../services/auth.service';
 
+/**
+ * LoginComponent handles user authentication (login & registration)
+ * - Toggles between login and register modes
+ * - Validates forms and calls AuthService
+ * - Provides user feedback via spinner and error messages
+ */
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
@@ -20,7 +26,7 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [
     CommonModule,
-    ReactiveFormsModule,
+    ReactiveFormsModule,   // For reactive form controls
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -31,12 +37,12 @@ import { AuthService } from '../../services/auth.service';
   ]
 })
 export class LoginComponent implements OnInit {
-  loginForm!: FormGroup;
-  registerForm!: FormGroup;
-  isLoading = false;
-  errorMessage = '';
-  hidePassword = true;
-  isLoginMode = true;
+  loginForm!: FormGroup;       // Form for login fields
+  registerForm!: FormGroup;    // Form for registration fields
+  isLoading = false;           // Spinner flag
+  errorMessage = '';           // Display errors to user
+  hidePassword = true;         // Toggle password visibility
+  isLoginMode = true;          // Switch between login/register UI
 
   constructor(
     private formBuilder: FormBuilder,
@@ -72,10 +78,10 @@ export class LoginComponent implements OnInit {
     this.errorMessage = '';
   }
 
-  // Login form submission
+  /** Submit login; call AuthService and navigate on success */
   onLoginSubmit(): void {
-    if (this.loginForm.invalid) {
-      return;
+    if (this.loginForm.invalid) { // Abort if form invalid
+      return; 
     }
 
     const { email, password } = this.loginForm.value;
@@ -84,6 +90,7 @@ export class LoginComponent implements OnInit {
 
     this.authService.login(email, password).subscribe({
       next: (response: any) => {
+         // Backend puts token in header; frontend just navigates
         console.log('Login successful, token received:', response.headerValue);
         this.isLoading = false;
         this.router.navigate(['/dashboard']);
@@ -96,7 +103,7 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  // Register form submission
+  /** Submit registration; call AuthService and switch to login on success */
   onRegisterSubmit(): void {
     if (this.registerForm.invalid) {
       return;
@@ -120,7 +127,7 @@ export class LoginComponent implements OnInit {
           duration: 3000
         });
         this.isLoginMode = true; // Switch to login form
-        
+
         // Pre-fill the login form with the email
         this.loginForm.patchValue({
           email: registerData.email
@@ -128,7 +135,7 @@ export class LoginComponent implements OnInit {
       },
       error: (error: HttpErrorResponse) => {
         this.isLoading = false;
-        
+// Handle conflict (409) vs general errors
         if (error.status === 409) {
           this.errorMessage = 'Email already exists. Please use a different email.';
         } else {

@@ -1,15 +1,19 @@
-// src/app/services/user.service.ts
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, catchError, tap, throwError } from 'rxjs';
 import { User } from '../models/User';
 import { environment } from '../environments/environment';
 
+//Request payload for updating a user's password
 interface PasswordUpdateRequest {
   UserId: number;
   Password: string;
 }
 
+/**
+ * UserService manages user profile CRUD operations and password changes.
+ * Communicates with backend endpoints under /user.
+ */
 @Injectable({
   providedIn: 'root'
 })
@@ -18,39 +22,21 @@ export class UserService {
 
   constructor(private http: HttpClient) { }
 
-  /**
-   * Get user by ID
-   */
-  getUserById(id: number): Observable<User> {
-    return this.http.get<User>(`${this.baseUrl}/${id}`).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  /**
-   * Get user by email
-   */
+  //Get user by email
   getUserByEmail(email: string): Observable<User> {
     return this.http.get<User>(`${this.baseUrl}/byemail/${email}`).pipe(
       catchError(this.handleError)
     );
   }
 
-  /**
-   * Update user profile
-   */
+  //Update user profile
   updateUser(user: User): Observable<User> {
     return this.http.put<User>(`${this.baseUrl}`, user).pipe(
       catchError(this.handleError)
     );
   }
 
-  // src/app/services/user.service.ts
-  // Update deleteUser and updatePassword methods
-
-  /**
-   * Update user password
-   */
+  //Update user password
   updatePassword(userId: number, password: string): Observable<any> {
     const request: PasswordUpdateRequest = {
       UserId: userId,
@@ -62,8 +48,6 @@ export class UserService {
     return this.http.put(`${this.baseUrl}/password`, request).pipe(
       tap(response => console.log('Password update successful')),
       catchError(error => {
-        // The auth interceptor will handle 401 errors automatically
-        // We only need to handle other types of errors
         console.error('Error updating password:', error);
 
         if (error.status === 403) {
@@ -79,16 +63,13 @@ export class UserService {
     );
   }
 
-  /**
-   * Delete a user account
-   */
+  // Delete a user account
   deleteUser(id: number): Observable<any> {
     console.log(`Deleting user with ID: ${id}`);
 
     return this.http.delete(`${this.baseUrl}/${id}`).pipe(
       tap(() => console.log('User deleted successfully')),
       catchError(error => {
-        // The auth interceptor will handle 401 errors automatically
         console.error('Error deleting user:', error);
 
         if (error.status === 403) {
@@ -102,37 +83,7 @@ export class UserService {
     );
   }
 
-  /**
-   * Create a new user (usually handled through auth.service register)
-   */
-  createUser(user: User): Observable<User> {
-    return this.http.post<User>(`${this.baseUrl}`, user).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  /**
-   * Get all users (admin function)
-   */
-  getUsers(): Observable<User[]> {
-    return this.http.get<User[]>(this.baseUrl).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  /**
-   * Check if an email exists (used during registration)
-   */
-  checkEmailExists(email: string): Observable<boolean> {
-    return this.http.get<boolean>(`${this.baseUrl}/exists/email/${email}`).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-
-  /**
-   * Generic error handler that doesn't auto-logout
-   */
+  // Generic error handler that doesn't auto-logout
   private handleError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = 'An error occurred';
 
