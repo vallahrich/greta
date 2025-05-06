@@ -73,7 +73,6 @@ public class CycleSymptomRepository : BaseRepository
                     SymptomId      = Convert.ToInt32(data["symptom_id"]),
                     Intensity      = Convert.ToInt32(data["intensity"]),
                     Date           = Convert.ToDateTime(data["date"]),
-                    CreatedAt      = Convert.ToDateTime(data["created_at"]),
                     Symptom        = new Symptom(Convert.ToInt32(data["symptom_id"]))
                     {
                         Name = data["name"].ToString(),
