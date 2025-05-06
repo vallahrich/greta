@@ -1,3 +1,21 @@
+/// <summary>
+/// Controller that handles user authentication operations through a RESTful API interface.
+/// Provides endpoints for user login and registration.
+/// </summary>
+/// <remarks>
+/// Exposes the following API endpoints:
+/// - POST /api/auth/login: Authenticates a user by email and password, returning a token
+/// - POST /api/auth/register: Creates a new user account with validation
+/// 
+/// The controller performs validation including:
+/// - Ensuring required fields are provided
+/// - Preventing duplicate email registrations
+/// - Verifying credentials against the database
+/// 
+/// All endpoints follow standard RESTful conventions with appropriate HTTP status codes
+/// and response formats.
+/// </remarks>
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PeriodTracker.Model.Entities;

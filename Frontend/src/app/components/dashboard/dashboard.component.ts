@@ -1,6 +1,7 @@
+// src/app/pages/dashboard-page/dashboard-page.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,26 +11,26 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 
 import { PeriodCycleService } from '../../services/periodcycle.service';
-import { CycleSymptomService, CycleSymptom } from '../../services/cyclesymptom.service';
+import { CycleSymptomService } from '../../services/cyclesymptom.service';
 import { AuthService } from '../../services/auth.service';
 import { Periodcycle } from '../../models/Periodcycle';
 
 /**
- * Extends Periodcycle to include symptom name/intensity pairs for display.
+ * Extends PeriodCycle to include symptom name/intensity pairs for display.
  */
 interface CycleWithSymptoms extends Periodcycle {
   symptoms: { name: string; intensity: number }[];
 }
 
 /**
- * DashboardComponent
+ * DashboardPageComponent
  * - Loads recent cycles for the logged-in user
  * - Fetches associated symptoms
  * - Calculates average cycle and period lengths
  * - Displays a spinner while loading and snackbars on actions
  */
 @Component({
-  selector: 'app-dashboard',
+  selector: 'app-dashboard-page',
   standalone: true,
   imports: [
     CommonModule,
@@ -41,10 +42,10 @@ interface CycleWithSymptoms extends Periodcycle {
     MatProgressSpinnerModule,
     MatSnackBarModule
   ],
-  templateUrl: './dashboard.component.html',
-  styleUrls: ['./dashboard.component.css']
+  templateUrl: './dashboard-page.component.html',
+  styleUrls: ['./dashboard-page.component.css']
 })
-export class DashboardComponent implements OnInit {
+export class DashboardPageComponent implements OnInit {
   /** List of latest cycles enriched with symptoms for display */
   recentCycles: CycleWithSymptoms[] = [];
   isLoading = false;            // Shows spinner during data fetch
@@ -57,7 +58,8 @@ export class DashboardComponent implements OnInit {
     private periodCycleService: PeriodCycleService,
     private cycleSymptomService: CycleSymptomService,
     private auth: AuthService,
-    private snack: MatSnackBar
+    private snack: MatSnackBar,
+    private router: Router
   ) {}
 
   /** On component init, load cycles and symptoms */
@@ -71,7 +73,13 @@ export class DashboardComponent implements OnInit {
    */
   private async loadCycles(): Promise<void> {
     this.isLoading = true;
-    const userId = this.auth.getUserId()!;
+    const userId = this.auth.getUserId();
+    if (!userId) {
+      this.errorMessage = 'User authentication error. Please log in again.';
+      this.isLoading = false;
+      return;
+    }
+    
     try {
       // Fetch cycles as an array via firstValueFrom
       const cycles = await firstValueFrom(this.periodCycleService.getCyclesByUserId(userId));
@@ -81,7 +89,7 @@ export class DashboardComponent implements OnInit {
       // In parallel, fetch symptoms for each cycle
       const withSymptoms = await Promise.all(
         cycles.map(async cycle => {
-          const cs: CycleSymptom[] = await firstValueFrom(
+          const cs = await firstValueFrom(
             this.cycleSymptomService.getCycleSymptomsByCycleId(cycle.cycleId)
           );
           // Map to simple name/intensity pairs
@@ -92,8 +100,9 @@ export class DashboardComponent implements OnInit {
 
       this.recentCycles = withSymptoms;
       this.calculateStats(cycles);
-    } catch {
+    } catch (error) {
       this.errorMessage = 'Failed to load cycles';
+      console.error('Error loading cycles:', error);
     } finally {
       this.isLoading = false;
     }
@@ -141,7 +150,12 @@ export class DashboardComponent implements OnInit {
    * Deletes a cycle and updates the view and stats on success
    */
   onDeleteCycle(cycleId: number): void {
-    const userId = this.auth.getUserId()!;
+    const userId = this.auth.getUserId();
+    if (!userId) {
+      this.errorMessage = 'User authentication error. Please log in again.';
+      return;
+    }
+    
     this.periodCycleService.deleteCycle(cycleId, userId).subscribe({
       next: () => {
         // Remove from list and recalc
@@ -149,12 +163,16 @@ export class DashboardComponent implements OnInit {
         this.calculateStats(this.recentCycles);
         this.snack.open('Cycle deleted', 'Close', { duration: 3000 });
       },
-      error: () => this.snack.open('Failed to delete cycle', 'Close', { duration: 3000 })
+      error: (err) => {
+        console.error('Error deleting cycle:', err);
+        this.snack.open('Failed to delete cycle', 'Close', { duration: 3000 });
+      }
     });
   }
 
   /** Logs out the current user */
   logout(): void {
     this.auth.logout();
+    this.router.navigate(['/login']);
   }
 }

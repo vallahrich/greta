@@ -1,9 +1,27 @@
-// File: UserController.cs
-// Purpose: CRUD operations for user profiles (retrieve by email, update, change password, delete)
+/// <summary>
+/// Controller that handles user profile management operations.
+/// Provides CRUD operations for user accounts.
+/// </summary>
+/// <remarks>
+/// Exposes the following API endpoints:
+/// - GET /api/user/byemail/{email}: Retrieves authenticated user profile by email
+/// - PUT /api/user: Updates user profile information (name, email)
+/// - PUT /api/user/password: Changes user password with verification
+/// - DELETE /api/user/{id}: Deletes user account with authorization
+/// 
+/// The controller performs validation including:
+/// - Ensuring users can only access their own information
+/// - Verifying user existence before operations
+/// - Preventing duplicate email addresses during updates
+/// - Enforcing ownership of accounts for deletion operations
+/// 
+/// All endpoints require authentication and follow standard RESTful conventions
+/// with appropriate HTTP status codes and response formats.
+/// </remarks>
 
-using Microsoft.AspNetCore.Authorization;  // For securing endpoints
-using Microsoft.AspNetCore.Mvc;            // Provides ControllerBase, routing, and ActionResult
-using PeriodTracker.Model.Entities;        // Defines User entity
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using PeriodTracker.Model.Entities;
 
 namespace PeriodTracker.API.Controllers
 {
@@ -12,11 +30,11 @@ namespace PeriodTracker.API.Controllers
     [Authorize]  // Require authentication for all actions by default
     public class UserController : ControllerBase
     {
-        private readonly UserRepository _userRepository;  // Handles DB operations for users
+        private readonly UserRepository _userRepository;
 
         public UserController(UserRepository userRepository)
         {
-            _userRepository = userRepository;             // Inject UserRepository
+            _userRepository = userRepository;
         }
 
         // GET: api/user/byemail/{email}
@@ -117,7 +135,7 @@ namespace PeriodTracker.API.Controllers
     // DTO for password update
     public class PasswordUpdateRequest
     {
-        public int UserId   { get; set; }
+        public int UserId { get; set; }
         public string Password { get; set; }
     }
 }

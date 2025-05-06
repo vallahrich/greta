@@ -1,7 +1,27 @@
-using PeriodTracker.API.Middleware;          // Provides the UseBasicAuthenticationMiddleware extension
-using System.Text.Json;                      // JSON options for camelCase naming
+/// <summary>
+/// Program entry point and configuration for the PeriodTracker API.
+/// Sets up the ASP.NET Core application, configures services, and establishes the HTTP request pipeline.
+/// </summary>
+/// <remarks>
+/// Key configuration components:
+/// - Registers repository services using dependency injection with scoped lifetime
+/// - Configures JSON serialization with camelCase naming
+/// - Enables Swagger/OpenAPI documentation
+/// - Configures CORS for the Angular frontend (http://localhost:4200)
+/// - Sets up the HTTP request pipeline with appropriate middleware:
+///   - Swagger UI for API documentation (in Development environment only)
+///   - CORS middleware to handle cross-origin requests
+///   - Custom Basic Authentication middleware for securing API endpoints
+///   - Standard controller routing
+/// 
+/// This configuration establishes a RESTful API for period tracking with
+/// authentication, documentation, and proper cross-origin resource sharing.
+/// </remarks>
 
-var builder = WebApplication.CreateBuilder(args); // Create the web application builder
+using PeriodTracker.API.Middleware;
+using System.Text.Json;
+
+var builder = WebApplication.CreateBuilder(args);
 
 // Configure services
 builder.Services.AddControllers()
@@ -11,10 +31,10 @@ builder.Services.AddControllers()
         opts.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
 
-builder.Services.AddEndpointsApiExplorer();       // Enable minimal API descriptions for Swagger
-builder.Services.AddSwaggerGen();                 // Register Swagger generator
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-// Register application repositories with scoped lifetime
+// Register concrete repository implementations with scoped lifetime
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<SymptomRepository>();
 builder.Services.AddScoped<PeriodCycleRepository>();

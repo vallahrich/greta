@@ -1,13 +1,14 @@
+/**
+ * Auth interceptor to add authorization headers to outgoing requests
+ * and handle unauthorized responses
+ */
+
 import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpErrorResponse } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 
-/**
- * Auth interceptor to add authorization headers to outgoing requests
- * and handle unauthorized responses
- */
-export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   
   // Skip adding auth header for login/register requests

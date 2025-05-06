@@ -1,20 +1,30 @@
-// File: SymptomController.cs
-// Purpose: Expose endpoints to retrieve available symptoms for users to select/report.
+/// <summary>
+/// Controller that exposes endpoints to retrieve available symptoms for users to select or report.
+/// </summary>
+/// <remarks>
+/// Exposes the following API endpoint:
+/// - GET /api/symptom: Returns a complete list of defined symptoms (e.g., cramps, headache)
+/// 
+/// The controller provides the catalog of symptom definitions that users can select from
+/// when recording symptoms associated with their menstrual cycles.
+/// 
+/// This endpoint is designed to be accessible without authentication, providing public
+/// access to reference data used throughout the application.
+/// </remarks>
 
-using Microsoft.AspNetCore.Mvc;                             // Provides controller base and HTTP attributes
+using Microsoft.AspNetCore.Mvc;
 
 namespace PeriodTracker.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    // TODO: Add [Authorize] if retrieval of symptoms should be restricted
     public class SymptomController : ControllerBase
     {
-        private readonly SymptomRepository _symptomRepository;  // Data access for symptoms
+        private readonly SymptomRepository _symptomRepository;
 
         public SymptomController(SymptomRepository symptomRepository)
         {
-            _symptomRepository = symptomRepository;             // Inject repository
+            _symptomRepository = symptomRepository;
         }
 
         // GET: api/symptom

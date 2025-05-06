@@ -10,7 +10,14 @@ export interface CycleSymptom {
     cycleId: number;
     symptomId: number;
     intensity: number;
-    date: Date;
-    createdAt: Date;
+    date: string;
+    createdAt: string;
     symptom?: Symptom;
-}
+  }
+  
+  export interface CreateCycleSymptomDto {
+    cycleId: number;
+    symptomId: number;
+    intensity: number;
+    date: string;
+  }

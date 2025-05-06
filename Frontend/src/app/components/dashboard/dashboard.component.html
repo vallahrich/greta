@@ -23,7 +23,6 @@
   </header>
 
   <main class="dashboard-content">
-
     <!-- Summary cards -->
     <section class="summary-card">
       <div class="cycle-summary">
@@ -58,74 +57,94 @@
         </button>
       </div>
 
-      <div *ngIf="recentCycles.length === 0" class="empty-state">
-        <p>No cycles recorded yet.</p>
-        <button mat-raised-button color="accent" routerLink="/cycle/add">
-          Add First Cycle
-        </button>
-      </div>
+      @if (isLoading) {
+        <div class="loading-container">
+          <mat-spinner diameter="40"></mat-spinner>
+        </div>
+      }
 
-      <div class="cycles-list">
-        <mat-card *ngFor="let cycle of recentCycles" class="cycle-card">
-          
-          <!-- dates + duration -->
-          <div class="cycle-dates">
-            <div class="date-range">
-              <span class="start-date">
-                {{ cycle.startDate | date:'mediumDate' }}
-              </span>
-              <span class="date-separator">→</span>
-              <span class="end-date">
-                {{ cycle.endDate | date:'mediumDate' }}
-              </span>
-            </div>
-            <div class="cycle-duration">
-              <div class="duration-value">
-                {{ cycle.duration }}
-              </div>
-              <div class="duration-label">
-                days
-              </div>
-            </div>
-          </div>
+      @if (errorMessage) {
+        <div class="error-message">
+          <mat-icon>error</mat-icon>
+          {{ errorMessage }}
+        </div>
+      }
 
-          <!-- symptoms with intensity -->
-          <mat-card-content *ngIf="cycle.symptoms?.length">
-            <div class="symptoms-section">
-              <h4 class="symptoms-header">Symptoms:</h4>
-              <div class="symptoms-grid">
-                <div class="symptom-item" *ngFor="let symptom of cycle.symptoms">
-                  <span class="symptom-name">{{ symptom.name }}</span>
-                  <div class="intensity-indicator">
-                    <span class="intensity-label">Intensity:</span>
-                    <div class="intensity-dots">
-                      <span class="intensity-dot" 
-                            *ngFor="let i of [1,2,3,4,5]"
-                            [class.filled]="i <= symptom.intensity">
-                      </span>
-                    </div>
-                    <span class="intensity-value">({{ symptom.intensity }}/5)</span>
+      @if (recentCycles.length === 0 && !isLoading) {
+        <div class="empty-state">
+          <p>No cycles recorded yet.</p>
+          <button mat-raised-button color="accent" routerLink="/cycle/add">
+            Add First Cycle
+          </button>
+        </div>
+      }
+
+      @if (recentCycles.length > 0 && !isLoading) {
+        <div class="cycles-list">
+          @for (cycle of recentCycles; track cycle.cycleId) {
+            <mat-card class="cycle-card">
+              <!-- dates + duration -->
+              <div class="cycle-dates">
+                <div class="date-range">
+                  <span class="start-date">
+                    {{ cycle.startDate | date:'mediumDate' }}
+                  </span>
+                  <span class="date-separator">→</span>
+                  <span class="end-date">
+                    {{ cycle.endDate | date:'mediumDate' }}
+                  </span>
+                </div>
+                <div class="cycle-duration">
+                  <div class="duration-value">
+                    {{ cycle.duration }}
+                  </div>
+                  <div class="duration-label">
+                    days
                   </div>
                 </div>
               </div>
-            </div>
-          </mat-card-content>
 
-          <!-- actions -->
-          <mat-card-actions class="cycle-actions" align="end">
-            <button mat-icon-button color="primary"
-                    [routerLink]="['/cycle/edit', cycle.cycleId]">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button mat-icon-button color="warn"
-                    (click)="onDeleteCycle(cycle.cycleId)">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </mat-card-actions>
-        </mat-card>
-      </div>
+              <!-- symptoms with intensity -->
+              @if (cycle.symptoms?.length) {
+                <mat-card-content>
+                  <div class="symptoms-section">
+                    <h4 class="symptoms-header">Symptoms:</h4>
+                    <div class="symptoms-grid">
+                      @for (symptom of cycle.symptoms; track symptom.name) {
+                        <div class="symptom-item">
+                          <span class="symptom-name">{{ symptom.name }}</span>
+                          <div class="intensity-indicator">
+                            <span class="intensity-label">Intensity:</span>
+                            <div class="intensity-dots">
+                              @for (i of [1,2,3,4,5]; track i) {
+                                <span class="intensity-dot" [class.filled]="i <= symptom.intensity"></span>
+                              }
+                            </div>
+                            <span class="intensity-value">({{ symptom.intensity }}/5)</span>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </mat-card-content>
+              }
+
+              <!-- actions -->
+              <mat-card-actions class="cycle-actions" align="end">
+                <button mat-icon-button color="primary"
+                        [routerLink]="['/cycle/edit', cycle.cycleId]">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button color="warn"
+                        (click)="onDeleteCycle(cycle.cycleId)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </mat-card-actions>
+            </mat-card>
+          }
+        </div>
+      }
     </section>
-
   </main>
 
   <!-- Navigation Footer -->

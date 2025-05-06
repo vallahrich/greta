@@ -1,12 +1,29 @@
-using Microsoft.AspNetCore.Authorization;      // For IAllowAnonymous
+/// <summary>
+/// Middleware component that implements Basic Authentication for the API.
+/// Intercepts HTTP requests and validates credentials before allowing access to protected endpoints.
+/// </summary>
+/// <remarks>
+/// This middleware:
+/// - Allows unauthenticated access to endpoints marked with [AllowAnonymous]
+/// - Permits OPTIONS requests for CORS preflight without authentication
+/// - Checks for the presence of the Authorization header with Basic scheme
+/// - Decodes and validates credentials against the user database
+/// - Stores authenticated user information in HttpContext.Items for downstream components
+/// - Returns appropriate 401 Unauthorized responses for invalid/missing credentials
+/// 
+/// The class follows the standard ASP.NET Core middleware pattern with constructor injection
+/// and an async Invoke method. It also provides an extension method for easy registration
+/// in the application's middleware pipeline.
+/// </remarks>
+
+using Microsoft.AspNetCore.Authorization;
 
 namespace PeriodTracker.API.Middleware
 {
-    // Ensures incoming requests carry valid Basic Auth credentials
     public class BasicAuthenticationMiddleware
     {
-        private readonly RequestDelegate _next;          // Next middleware in pipeline
-        private readonly IServiceProvider _serviceProvider; // To resolve scoped services
+        private readonly RequestDelegate _next;
+        private readonly IServiceProvider _serviceProvider;
 
         // Constructor receives next delegate and root service provider
         public BasicAuthenticationMiddleware(RequestDelegate next, IServiceProvider serviceProvider)

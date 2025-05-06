@@ -1,19 +1,25 @@
+//SymptomService fetches the list of available symptoms from the backend
+
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { Symptom } from '../models/Symptom';
+import { Observable, catchError, throwError } from 'rxjs';
 import { environment } from '../environments/environment';
+import { Symptom } from '../models/Symptom';
 
-//SymptomService fetches the list of available symptoms from the backend
 @Injectable({
   providedIn: 'root'
 })
 export class SymptomService {
-  private baseUrl = `${environment.apiUrl}/symptom`;
+  private apiUrl = `${environment.apiUrl}/symptom`;
   
   constructor(private http: HttpClient) { }
   
   getAllSymptoms(): Observable<Symptom[]> {
-    return this.http.get<Symptom[]>(this.baseUrl);
+    return this.http.get<Symptom[]>(this.apiUrl).pipe(
+      catchError(error => {
+        console.error('Error fetching symptoms:', error);
+        return throwError(() => error);
+      })
+    );
   }
 }

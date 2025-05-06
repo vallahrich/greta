@@ -1,6 +1,6 @@
+// src/app/pages/profile-page/profile-page.component.ts
 import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Location } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,13 +20,13 @@ import { AuthService } from '../../services/auth.service';
 import { User } from '../../models/User';
 
 /**
- * ProfileComponent
- * - Displays and edits the logged-in user’s profile
+ * ProfilePageComponent
+ * - Displays and edits the logged-in user's profile
  * - Allows changing name, email (read-only), and password
  * - Supports account deletion with confirmation dialog
  */
 @Component({
-  selector: 'app-profile',
+  selector: 'app-profile-page',
   standalone: true,
   imports: [
     CommonModule,
@@ -46,10 +46,10 @@ import { User } from '../../models/User';
     MatProgressSpinnerModule,
     MatMenuModule,
   ],
-  templateUrl: './profile.component.html',
-  styleUrls: ['./profile.component.css']
+  templateUrl: './profile-page.component.html',
+  styleUrls: ['./profile-page.component.css']
 })
-export class ProfileComponent implements OnInit {
+export class ProfilePageComponent implements OnInit {
   // TemplateRef for the delete confirmation dialog
   @ViewChild('deleteAccountDialog') deleteAccountDialog!: TemplateRef<any>;
 
@@ -75,8 +75,7 @@ export class ProfileComponent implements OnInit {
     private auth: AuthService,
     private router: Router,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog,
-    private location: Location
+    private dialog: MatDialog
   ) { }
 
   /**
@@ -230,10 +229,6 @@ export class ProfileComponent implements OnInit {
   logout(): void {
     this.auth.logout();
     this.router.navigate(['/login']);
-  }
-
-  navigateBack(): void {
-    this.location.back();
   }
 
   refreshUserData(): void {

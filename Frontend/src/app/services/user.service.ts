@@ -1,3 +1,8 @@
+/**
+ * UserService manages user profile CRUD operations and password changes.
+ * Communicates with backend endpoints under /user.
+ */
+
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, catchError, tap, throwError } from 'rxjs';
@@ -10,10 +15,7 @@ interface PasswordUpdateRequest {
   Password: string;
 }
 
-/**
- * UserService manages user profile CRUD operations and password changes.
- * Communicates with backend endpoints under /user.
- */
+
 @Injectable({
   providedIn: 'root'
 })

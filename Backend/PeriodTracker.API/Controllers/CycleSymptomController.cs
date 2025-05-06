@@ -1,7 +1,22 @@
-// File: CycleSymptomController.cs
-// Purpose: Manage associations between menstrual cycles and reported symptoms (CRUD operations)
+/// <summary>
+/// Controller that handles associations between menstrual cycles and reported symptoms.
+/// Provides CRUD operations for cycle-symptom records.
+/// </summary>
+/// <remarks>
+/// Exposes the following API endpoints:
+/// - GET /api/cyclesymptom/cycle/{cycleId}: Retrieves all symptoms for a specific cycle
+/// - POST /api/cyclesymptom: Creates a new symptom record for a cycle with validation
+/// 
+/// The controller performs validation including:
+/// - Verifying cycles and symptoms exist before operations
+/// - Validating intensity ranges (1-5 scale)
+/// - Ensuring dates fall within cycle bounds
+/// 
+/// All endpoints follow standard RESTful conventions with appropriate HTTP status codes
+/// and response formats.
+/// </remarks>
 
-using Microsoft.AspNetCore.Mvc;                                 // API Controller base and ActionResult types
+using Microsoft.AspNetCore.Mvc;
 
 namespace PeriodTracker.API.Controllers
 {
@@ -9,9 +24,9 @@ namespace PeriodTracker.API.Controllers
     [Route("api/[controller]")]
     public class CycleSymptomController : ControllerBase
     {
-        private readonly CycleSymptomRepository _cycleSymptomRepository;  // CRUD for cycle-symptom entries
-        private readonly PeriodCycleRepository _periodCycleRepository;    // Verify cycles exist
-        private readonly SymptomRepository _symptomRepository;            // Verify symptoms exist
+        private readonly CycleSymptomRepository _cycleSymptomRepository;
+        private readonly PeriodCycleRepository _periodCycleRepository;
+        private readonly SymptomRepository _symptomRepository;
 
         // Constructor injection of required repositories
         public CycleSymptomController(

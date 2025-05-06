@@ -1,7 +1,8 @@
+// src/app/pages/login-page/login-page.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -14,19 +15,20 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 
 /**
- * LoginComponent handles user authentication (login & registration)
+ * LoginPageComponent handles user authentication (login & registration)
  * - Toggles between login and register modes
  * - Validates forms and calls AuthService
  * - Provides user feedback via spinner and error messages
  */
 @Component({
-  selector: 'app-login',
-  templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css'],
+  selector: 'app-login-page',
+  templateUrl: './login-page.component.html',
+  styleUrls: ['./login-page.component.css'],
   standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,   // For reactive form controls
+    RouterModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -36,7 +38,7 @@ import { AuthService } from '../../services/auth.service';
     MatSnackBarModule
   ]
 })
-export class LoginComponent implements OnInit {
+export class LoginPageComponent implements OnInit {
   loginForm!: FormGroup;       // Form for login fields
   registerForm!: FormGroup;    // Form for registration fields
   isLoading = false;           // Spinner flag
@@ -52,7 +54,7 @@ export class LoginComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    // Call isAuthenticated as a method, not a property
+    // Check if already authenticated
     if (this.authService.isAuthenticated()) { 
       this.router.navigate(['/']);
     }
@@ -90,7 +92,7 @@ export class LoginComponent implements OnInit {
     this.authService.login(email, password).subscribe({
       next: (response: any) => {
          // Backend puts token in header; frontend just navigates
-        console.log('Login successful, token received:', response.headerValue);
+        console.log('Login successful, token received:', response.token);
         this.isLoading = false;
         this.router.navigate(['/dashboard']);
       },
@@ -134,7 +136,7 @@ export class LoginComponent implements OnInit {
       },
       error: (error: HttpErrorResponse) => {
         this.isLoading = false;
-// Handle conflict (409) vs general errors
+        // Handle conflict (409) vs general errors
         if (error.status === 409) {
           this.errorMessage = 'Email already exists. Please use a different email.';
         } else {

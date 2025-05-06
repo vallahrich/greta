@@ -10,83 +10,104 @@
   </header>
 
   <!-- Main Content -->
-  <div class="form-content" *ngIf="!isLoading; else loading">
+  <div class="form-content">
     <!-- Error -->
-    <div *ngIf="errorMessage" class="error-message">
-      {{ errorMessage }}
-    </div>
+    @if (errorMessage) {
+      <div class="error-message">
+        {{ errorMessage }}
+      </div>
+    }
 
-    <form [formGroup]="cycleForm" (ngSubmit)="saveCycle()">
-      <mat-card class="form-card">
-        <!-- Date fields -->
-        <mat-card-content>
-          <div class="date-fields">
-            <mat-form-field appearance="outline">
-              <mat-label>Start Date</mat-label>
-              <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
-              <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
-              <mat-datepicker #startPicker></mat-datepicker>
-            </mat-form-field>
-            
-            <mat-form-field appearance="outline">
-              <mat-label>End Date</mat-label>
-              <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
-              <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-              <mat-datepicker #endPicker></mat-datepicker>
-            </mat-form-field>
-          </div>
-
-          <!-- Notes -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Notes</mat-label>
-            <textarea matInput formControlName="notes" rows="3"></textarea>
-          </mat-form-field>
-
-          <!-- Symptoms -->
-          <h3 class="symptoms-title">Symptoms</h3>
-          <div formArrayName="symptoms" class="symptoms-list">
-            <div
-              *ngFor="let ctrl of symptoms.controls; let i = index"
-              [formGroupName]="i"
-              class="symptom-row"
-            >
-              <mat-checkbox formControlName="selected">
-                {{ allSymptoms[i].name }}
-              </mat-checkbox>
-              <mat-form-field appearance="outline" class="intensity-field" *ngIf="ctrl.get('selected')?.value">
-                <mat-label>Intensity</mat-label>
-                <input
-                  matInput
-                  type="number"
-                  formControlName="intensity"
-                  [min]="1"
-                  [max]="5"
-                />
+    @if (isLoading) {
+      <div class="loading-container">
+        <mat-spinner mode="indeterminate" diameter="40"></mat-spinner>
+      </div>
+    } @else {
+      <form [formGroup]="cycleForm" (ngSubmit)="saveCycle()">
+        <mat-card class="form-card">
+          <!-- Date fields -->
+          <mat-card-content>
+            <div class="date-fields">
+              <mat-form-field appearance="outline">
+                <mat-label>Start Date</mat-label>
+                <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
+                <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+                <mat-datepicker #startPicker></mat-datepicker>
+                @if (cycleForm.get('startDate')?.hasError('required') && 
+                     (cycleForm.get('startDate')?.touched || cycleForm.get('startDate')?.dirty)) {
+                  <mat-error>Start date is required</mat-error>
+                }
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline">
+                <mat-label>End Date</mat-label>
+                <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
+                <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+                <mat-datepicker #endPicker></mat-datepicker>
+                @if (cycleForm.get('endDate')?.hasError('required') && 
+                     (cycleForm.get('endDate')?.touched || cycleForm.get('endDate')?.dirty)) {
+                  <mat-error>End date is required</mat-error>
+                }
               </mat-form-field>
             </div>
-          </div>
 
-          <!-- Actions -->
-          <div class="form-actions">
-            <button mat-stroked-button type="button" (click)="cancel()">Cancel</button>
-            <button mat-raised-button color="primary" type="submit" [disabled]="cycleForm.invalid">
-              {{ isEditMode ? 'Update' : 'Save' }}
-            </button>
-            <button *ngIf="isEditMode" mat-raised-button color="warn" type="button" (click)="openDeleteConfirmation()">
-              Delete
-            </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    </form>
+            @if (cycleForm.hasError('dateRange')) {
+              <mat-error>End date must be later than or equal to start date</mat-error>
+            }
+
+            <!-- Notes -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Notes</mat-label>
+              <textarea matInput formControlName="notes" rows="3"></textarea>
+            </mat-form-field>
+
+            <!-- Symptoms -->
+            <h3 class="symptoms-title">Symptoms</h3>
+            <div formArrayName="symptoms" class="symptoms-list">
+              @for (ctrl of symptoms.controls; let i = index; track i) {
+                <div [formGroupName]="i" class="symptom-row">
+                  <mat-checkbox formControlName="selected">
+                    {{ allSymptoms[i].name }}
+                  </mat-checkbox>
+                  @if (ctrl.get('selected')?.value) {
+                    <mat-form-field appearance="outline" class="intensity-field">
+                      <mat-label>Intensity</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        formControlName="intensity"
+                        [min]="1"
+                        [max]="5"
+                      />
+                      @if (ctrl.get('intensity')?.hasError('min')) {
+                        <mat-error>Minimum intensity is 1</mat-error>
+                      }
+                      @if (ctrl.get('intensity')?.hasError('max')) {
+                        <mat-error>Maximum intensity is 5</mat-error>
+                      }
+                    </mat-form-field>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Actions -->
+            <div class="form-actions">
+              <button mat-stroked-button type="button" (click)="cancel()">Cancel</button>
+              <button mat-raised-button color="primary" type="submit" [disabled]="cycleForm.invalid">
+                {{ isEditMode ? 'Update' : 'Save' }}
+              </button>
+              @if (isEditMode) {
+                <button mat-raised-button color="warn" type="button" (click)="openDeleteConfirmation()">
+                  Delete
+                </button>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </form>
+    }
   </div>
-
-  <!-- Loading Spinner -->
-  <ng-template #loading>
-    <div class="loading-container">
-      <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
-    </div>
-  </ng-template>
 
   <!-- Navigation Footer -->
   <nav class="form-nav">

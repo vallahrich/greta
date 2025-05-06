@@ -1,7 +1,24 @@
-// File: PeriodCycleController.cs
-// Purpose: Manage menstrual cycle records per user (list, create, delete)
+/// <summary>
+/// Controller that manages menstrual cycle records for users.
+/// Provides endpoints for listing, creating, and deleting cycles.
+/// </summary>
+/// <remarks>
+/// Exposes the following API endpoints:
+/// - GET /api/periodcycle/user/{userId}: Retrieves all cycles for an authenticated user
+/// - POST /api/periodcycle: Creates a new cycle record with validation
+/// - DELETE /api/periodcycle/{id}/user/{userId}: Deletes a cycle and its symptoms
+/// 
+/// The controller performs validation including:
+/// - Ensuring only authenticated users can access their own cycles
+/// - Verifying cycle existence before operations
+/// - Validating date ranges (end date must be after start date)
+/// - Enforcing ownership of cycles for deletion operations
+/// 
+/// All endpoints follow standard RESTful conventions with appropriate HTTP status codes
+/// and response formats.
+/// </remarks>
 
-using Microsoft.AspNetCore.Mvc;                             // Provides API controllers and ActionResult types
+using Microsoft.AspNetCore.Mvc;
 
 namespace PeriodTracker.API.Controllers
 {
@@ -9,9 +26,9 @@ namespace PeriodTracker.API.Controllers
     [Route("api/[controller]")]
     public class PeriodCycleController : ControllerBase
     {
-        private readonly PeriodCycleRepository _periodCycleRepository;  // CRUD for cycles
-        private readonly UserRepository _userRepository;                // Validate user existence and ownership
-        private readonly CycleSymptomRepository _cycleSymptomRepository; // Cascade-delete related symptoms
+        private readonly PeriodCycleRepository _periodCycleRepository;
+        private readonly UserRepository _userRepository;
+        private readonly CycleSymptomRepository _cycleSymptomRepository;
 
         public PeriodCycleController(
             PeriodCycleRepository periodCycleRepository,
@@ -106,5 +123,4 @@ namespace PeriodTracker.API.Controllers
             return NoContent(); // HTTP 204
         }
     }
-
 }

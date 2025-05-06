@@ -1,3 +1,4 @@
+// src/app/pages/calendar-page/calendar-page.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -23,8 +24,15 @@ interface CalendarDay {
   cycleId?: number;
 }
 
+/**
+ * CalendarPageComponent
+ * Displays a month-view calendar with period and fertility information.
+ * - Shows period days based on user's recorded cycles
+ * - Calculates and shows fertility windows
+ * - Allows navigation between months
+ */
 @Component({
-  selector: 'app-calendar-view',
+  selector: 'app-calendar-page',
   standalone: true,
   imports: [
     CommonModule,
@@ -35,10 +43,10 @@ interface CalendarDay {
     MatCardModule,
     MatMenuModule
   ],
-  templateUrl: './calendar-view.component.html',
-  styleUrls: ['./calendar-view.component.css']
+  templateUrl: './calendar-page.component.html',
+  styleUrls: ['./calendar-page.component.css']
 })
-export class CalendarViewComponent implements OnInit {
+export class CalendarPageComponent implements OnInit {
   currentDate: Date = new Date();      // tracks displayed month
   currentMonth: string = '';           // formatted month/year label
   currentYear: number = 0;
@@ -93,6 +101,7 @@ export class CalendarViewComponent implements OnInit {
       },
       error: err => {
         this.errorMessage = 'Could not load calendar data. Please try again later.';
+        console.error('Error loading calendar data:', err);
         this.isLoading = false;
         this.generateCalendarGrid();  // still render empty grid
       }
@@ -186,5 +195,11 @@ export class CalendarViewComponent implements OnInit {
   // Creates an empty calendar cell
   private createEmptyCell(): CalendarDay {
     return { day: null, date: null, active: false, isPeriod: false, isFertile: false, isOvulation: false, isToday: false };
+  }
+
+  // Logout function
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }
