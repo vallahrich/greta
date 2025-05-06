@@ -1,4 +1,4 @@
-// src/app/services/auth.service.ts
+// auth.service.ts
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
@@ -10,7 +10,8 @@ import { User } from '../models/User';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = `${environment.apiUrl}/auth`;
+  // Skip URL construction logic entirely - directly use absolute URLs
+  private readonly BASE_URL = 'http://localhost:5113';
   
   private currentUserSubject: BehaviorSubject<User | null>;
   public currentUser: Observable<User | null>;
@@ -32,13 +33,16 @@ export class AuthService {
   }
 
   login(email: string, password: string): Observable<any> {
+    // Bypass ALL URL construction by using the direct URL from the backend controller
+    const loginUrl = `${this.BASE_URL}/api/auth/login`;
+    console.log(`Making login request to: ${loginUrl}`);
+    
     return this.http.post<any>(
-      `${this.apiUrl}/login`,
+      loginUrl,
       { email, password }
     ).pipe(
       tap(response => {
         if (response) {
-          // Store auth data
           localStorage.setItem('authHeader', response.token || '');
           localStorage.setItem('isAuthenticated', 'true');
           localStorage.setItem('userEmail', response.email || '');
@@ -55,14 +59,16 @@ export class AuthService {
   }
 
   register(registerData: any): Observable<any> {
+    const registerUrl = `${this.BASE_URL}/api/auth/register`;
+    console.log(`Making registration request to: ${registerUrl}`);
+    
     return this.http.post<any>(
-      `${this.apiUrl}/register`,
+      registerUrl,
       registerData
     );
   }
 
   logout(): void {
-    // Remove user data from storage
     localStorage.removeItem('currentUser');
     localStorage.removeItem('authHeader');
     localStorage.removeItem('isAuthenticated');

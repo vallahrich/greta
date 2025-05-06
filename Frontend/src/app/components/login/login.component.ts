@@ -1,4 +1,3 @@
-// src/app/pages/login-page/login-page.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -13,13 +12,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../environments/environment';
 
-/**
- * LoginPageComponent handles user authentication (login & registration)
- * - Toggles between login and register modes
- * - Validates forms and calls AuthService
- * - Provides user feedback via spinner and error messages
- */
 @Component({
   selector: 'app-login-page',
   templateUrl: './login-page.component.html',
@@ -27,7 +21,7 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [
     CommonModule,
-    ReactiveFormsModule,   // For reactive form controls
+    ReactiveFormsModule,
     RouterModule,
     MatCardModule,
     MatFormFieldModule,
@@ -39,12 +33,12 @@ import { AuthService } from '../../services/auth.service';
   ]
 })
 export class LoginPageComponent implements OnInit {
-  loginForm!: FormGroup;       // Form for login fields
-  registerForm!: FormGroup;    // Form for registration fields
-  isLoading = false;           // Spinner flag
-  errorMessage = '';           // Display errors to user
-  hidePassword = true;         // Toggle password visibility
-  isLoginMode = true;          // Switch between login/register UI
+  loginForm!: FormGroup;
+  registerForm!: FormGroup;
+  isLoading = false;
+  errorMessage = '';
+  hidePassword = true;
+  isLoginMode = true;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -71,6 +65,14 @@ export class LoginPageComponent implements OnInit {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
+
+    // Pre-fill with test values in development
+    if (!environment.production) {
+      this.loginForm.patchValue({
+        email: 'test@example.com',
+        password: 'password123'
+      });
+    }
   }
 
   // Toggle between login and register forms
@@ -81,25 +83,34 @@ export class LoginPageComponent implements OnInit {
 
   /** Submit login; call AuthService and navigate on success */
   onLoginSubmit(): void {
-    if (this.loginForm.invalid) { // Abort if form invalid
+    if (this.loginForm.invalid) { 
       return; 
     }
 
     const { email, password } = this.loginForm.value;
+    console.log(`Attempting to login with email: ${email}`);
+    
     this.isLoading = true;
     this.errorMessage = '';
 
     this.authService.login(email, password).subscribe({
       next: (response: any) => {
-         // Backend puts token in header; frontend just navigates
         console.log('Login successful, token received:', response.token);
         this.isLoading = false;
         this.router.navigate(['/dashboard']);
       },
       error: (error: HttpErrorResponse) => {
+        console.error('Login error details:', error);
         this.isLoading = false;
-        this.errorMessage = 'Invalid email or password. Please try again.';
-        console.error('Login error:', error);
+        
+        // Improved error messaging
+        if (error.status === 401) {
+          this.errorMessage = 'Invalid credentials. Please check your email and password.';
+        } else if (error.status === 0) {
+          this.errorMessage = 'Cannot connect to server. Please check your internet connection.';
+        } else {
+          this.errorMessage = `Login failed: ${error.error || error.message || 'Unknown error'}`;
+        }
       }
     });
   }

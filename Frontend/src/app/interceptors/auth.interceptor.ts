@@ -11,9 +11,12 @@ import { Router } from '@angular/router';
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   
+  // Debug logging
+  console.log(`Request URL: ${req.url}`);
+  
   // Skip adding auth header for login/register requests
-  if (req.url.includes('/api/auth/login') || 
-      req.url.includes('/api/auth/register')) {
+  if (req.url.includes('/auth/login') || req.url.includes('/auth/register')) {
+    console.log('Skipping auth header for auth endpoint');
     return next(req);
   }
   
@@ -22,6 +25,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   
   // If auth header exists, add it to the request
   if (authHeader) {
+    console.log('Adding auth header to request');
     const authRequest = req.clone({
       headers: req.headers.set('Authorization', authHeader)
     });
@@ -29,24 +33,20 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     // Forward the modified request and handle errors
     return next(authRequest).pipe(
       catchError((error: HttpErrorResponse) => {
-        // Handle 401 Unauthorized errors
         if (error.status === 401) {
-          // Clear auth data
+          console.log('401 Unauthorized response - logging out');
           localStorage.removeItem('authHeader');
           localStorage.removeItem('currentUser');
           localStorage.removeItem('isAuthenticated');
           localStorage.removeItem('userEmail');
           localStorage.removeItem('userId');
-          
-          // Redirect to login
           router.navigate(['/login']);
         }
-        
         return throwError(() => error);
       })
     );
   }
   
-  // If no auth header, just forward the request as is
+  console.log('No auth header found for request');
   return next(req);
 };
