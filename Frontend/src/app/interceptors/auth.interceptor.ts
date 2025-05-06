@@ -1,4 +1,3 @@
-// src/app/interceptors/auth.interceptor.ts
 import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpErrorResponse } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
 import { inject } from '@angular/core';
@@ -13,8 +12,7 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
   
   // Skip adding auth header for login/register requests
   if (req.url.includes('/api/auth/login') || 
-      req.url.includes('/api/auth/register') || 
-      req.url.includes('/api/user/exists/')) {
+      req.url.includes('/api/auth/register')) {
     return next(req);
   }
   
@@ -34,16 +32,13 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
         if (error.status === 401) {
           // Clear auth data
           localStorage.removeItem('authHeader');
+          localStorage.removeItem('currentUser');
           localStorage.removeItem('isAuthenticated');
           localStorage.removeItem('userEmail');
           localStorage.removeItem('userId');
-          localStorage.removeItem('userName');
-          localStorage.removeItem('tokenExpiration');
           
           // Redirect to login
-          router.navigate(['/login'], { 
-            queryParams: { unauthorized: true }
-          });
+          router.navigate(['/login']);
         }
         
         return throwError(() => error);

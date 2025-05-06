@@ -1,71 +1,55 @@
-import { HttpClient, HttpResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
-import { tap, catchError, map } from 'rxjs/operators';
+import { tap, catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
-import { Router } from '@angular/router';
-
-interface LoginResponse {
-  userId?: number;
-  name?: string;
-  email: string;
-}
-
-interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
-}
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private baseUrl = `${environment.apiUrl}/auth`;
+  // Fix the base URL to avoid duplicate path
+  private apiUrl = environment.apiUrl; // No trailing /api
+  
+  private currentUserSubject: BehaviorSubject<any | null>;
+  public currentUser: Observable<any | null>;
 
-  // Observable to track authentication state
-  private authStateSubject = new BehaviorSubject<boolean>(this.isAuthenticated);
-  authState$ = this.authStateSubject.asObservable();
-
-  constructor(
-    private http: HttpClient,
-    private router: Router
-  ) {
-    this.checkTokenExpiration();
+  constructor(private http: HttpClient) {
+    this.currentUserSubject = new BehaviorSubject<any | null>(
+      this.getUserFromStorage()
+    );
+    this.currentUser = this.currentUserSubject.asObservable();
   }
 
-  /**
-   * Login with email and password
-   * Returns full HttpResponse so we can read the Authorization header
-   */
-  login(email: string, password: string): Observable<LoginResponse> {
-    const loginRequest: LoginRequest = { email, password };
+  public get currentUserValue(): any | null {
+    return this.currentUserSubject.value;
+  }
 
-    return this.http.post<LoginResponse>(
-      `${this.baseUrl}/login`,
-      loginRequest,
-      { observe: 'response' }
+  private getUserFromStorage(): any | null {
+    const storedUser = localStorage.getItem('currentUser');
+    return storedUser ? JSON.parse(storedUser) : null;
+  }
+
+  // Fix login URL
+  login(email: string, password: string): Observable<any> {
+    const loginUrl = `${this.apiUrl}/api/auth/login`;
+    console.log('Login URL:', loginUrl); // Debug URL
+    
+    return this.http.post<any>(
+      loginUrl,
+      { email, password }
     ).pipe(
-      tap(resp => {
-        const header = resp.headers.get('Authorization');
-        if (header) {
-          localStorage.setItem('authHeader', header);
+      tap(response => {
+        if (response && response.token) {
+          // Store auth data from response body
+          localStorage.setItem('authHeader', response.token);
           localStorage.setItem('isAuthenticated', 'true');
-          localStorage.setItem('userEmail', email);
-
-          // store body info
-          const body = resp.body!;
-          if (body.userId)  localStorage.setItem('userId',  body.userId.toString());
-          if (body.name)    localStorage.setItem('userName', body.name);
+          localStorage.setItem('userEmail', response.email);
+          localStorage.setItem('userId', response.userId?.toString());
+          localStorage.setItem('currentUser', JSON.stringify(response));
+          this.currentUserSubject.next(response);
         }
-        this.authStateSubject.next(true);
       }),
-      map(resp => resp.body!),  // unwrap to just the JSON
       catchError(error => {
         console.error('Login error:', error);
         return throwError(() => error);
@@ -73,61 +57,36 @@ export class AuthService {
     );
   }
 
-  /**
-   * Register a new user
-   */
-  register(registerData: RegisterRequest): Observable<any> {
-    return this.http.post(`${this.baseUrl}/register`, registerData)
-      .pipe(
-        catchError(error => {
-          console.error('Registration error:', error);
-          return throwError(() => error);
-        })
-      );
+  // Keep the existing register method signature
+  register(registerData: any): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/api/auth/register`,
+      registerData
+    );
   }
 
-  /**
-   * Logout the current user
-   */
   logout(): void {
-    localStorage.removeItem('isAuthenticated');
+    // Remove user data from storage
+    localStorage.removeItem('currentUser');
     localStorage.removeItem('authHeader');
+    localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userId');
-    localStorage.removeItem('userName');
-
-    this.authStateSubject.next(false);
-    this.router.navigate(['/login']);
+    this.currentUserSubject.next(null);
   }
 
-  /**
-   * Check if the user is authenticated
-   */
-  get isAuthenticated(): boolean {
-    return localStorage.getItem('isAuthenticated') === 'true';
-  }
-
-  /**
-   * Get the current user's email
-   */
-  getUserEmail(): string | null {
-    return localStorage.getItem('userEmail');
-  }
-
-  /**
-   * Get the current user's ID
-   */
+  // Add back missing methods used by components
   getUserId(): number | null {
     const id = localStorage.getItem('userId');
     return id ? parseInt(id, 10) : null;
   }
 
-  /**
-   * Check if token has expired and update state
-   */
-  private checkTokenExpiration(): void {
-    if (!this.isAuthenticated) {
-      this.authStateSubject.next(false);
-    }
+  getUserEmail(): string | null {
+    return localStorage.getItem('userEmail');
+  }
+
+  // Change from property to method
+  isAuthenticated(): boolean {
+    return !!this.currentUserValue || localStorage.getItem('isAuthenticated') === 'true';
   }
 }

@@ -4,7 +4,7 @@ import { ProfileComponent } from './components/profile/profile.component';
 import { CalendarViewComponent } from './components/calendar-view/calendar-view.component';
 import { CycleFormComponent } from './components/cycle-form/cycle-form.component';
 import { LoginComponent } from './components/login/login.component';
-import { AuthGuard } from './guards/auth.guard';
+import { authGuard } from './guards/auth.guard'; // Changed from AuthGuard to authGuard
 
 /**
  * Application routes configuration:
@@ -16,29 +16,27 @@ export const routes: Routes = [
   { 
     path: 'dashboard', 
     component: DashboardComponent,
-    canActivate: [AuthGuard]// Only allow authenticated users
+    canActivate: [authGuard]// Changed from AuthGuard to authGuard
   },
   { 
     path: 'profile', 
     component: ProfileComponent,
-    canActivate: [AuthGuard]
+    canActivate: [authGuard] // Changed from AuthGuard to authGuard
   },
   { 
     path: 'calendar', 
     component: CalendarViewComponent,
-    canActivate: [AuthGuard]
+    canActivate: [authGuard] // Changed from AuthGuard to authGuard
   },
   { 
     path: 'cycle/add', 
     component: CycleFormComponent,
-    canActivate: [AuthGuard]
+    canActivate: [authGuard] // Changed from AuthGuard to authGuard
   },
-
-  // Edit form reuses CycleFormComponent; :cycle_id param identifies which cycle to load
   { 
     path: 'cycle/edit/:cycle_id', 
     component: CycleFormComponent,
-    canActivate: [AuthGuard]
+    canActivate: [authGuard] // Changed from AuthGuard to authGuard
   },
   // Default route: redirect to dashboard
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },

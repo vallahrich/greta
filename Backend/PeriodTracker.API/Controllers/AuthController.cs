@@ -1,26 +1,22 @@
-// File: AuthController.cs
-// Purpose: Handles user authentication (login & register), issuing Basic Auth tokens and creating new users.
-
-using Microsoft.AspNetCore.Authorization;    // For [AllowAnonymous]
-using Microsoft.AspNetCore.Mvc;               // Provides APIController and ActionResult
-using PeriodTracker.Model.Entities;           // Defines User entity
-using PeriodTracker.API.Middleware;           // Contains AuthenticationHelper for token operations
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using PeriodTracker.Model.Entities;
+using PeriodTracker.API.Middleware;
 
 namespace PeriodTracker.API.Controllers
 {
     [Route("api/[controller]")]
-    [ApiController]                           // Enables automatic model validation and binding
+    [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly UserRepository _userRepository;  // Injected repo for user CRUD
+        private readonly UserRepository _userRepository;
 
         public AuthController(UserRepository userRepository)
         {
-            _userRepository = userRepository;             // Store injected dependency
+            _userRepository = userRepository;
         }
 
         // POST: api/auth/login
-        // Allows anonymous access, authenticates credentials and returns Basic token in header
         [AllowAnonymous]
         [HttpPost("login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -37,28 +33,22 @@ namespace PeriodTracker.API.Controllers
             if (user == null || user.Pw != credentials.Password)
                 return Unauthorized("Invalid email or password");
 
-            // Generate Basic auth token
-            var headerValue = AuthenticationHelper.Encrypt(
-                credentials.Email,
-                credentials.Password
-            );
+            // Generate token
+            var token = AuthenticationHelper.Encrypt(credentials.Email, credentials.Password);
 
-            // Send token in response header for client to use
-            Response.Headers.Append("Authorization", headerValue);
-
-            // Return user information in response body
+            // Return user data and token in response body
             var response = new
             {
                 userId = user.UserId,
-                name   = user.Name,
-                email  = user.Email
+                name = user.Name,
+                email = user.Email,
+                token = token  // Include token in response body
             };
 
             return Ok(response);
         }
 
         // POST: api/auth/register
-        // Allows anonymous, creates a new user account
         [AllowAnonymous]
         [HttpPost("register")]
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -79,9 +69,9 @@ namespace PeriodTracker.API.Controllers
             // Map DTO to User entity
             var user = new User
             {
-                Name      = request.Name,
-                Email     = request.Email,
-                Pw        = request.Password, // TODO: hash in production
+                Name = request.Name,
+                Email = request.Email,
+                Pw = request.Password, // TODO: hash in production
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -94,8 +84,8 @@ namespace PeriodTracker.API.Controllers
             return CreatedAtAction(nameof(Login), new { }, new
             {
                 userId = user.UserId,
-                name   = user.Name,
-                email  = user.Email
+                name = user.Name,
+                email = user.Email
             });
         }
     }
@@ -103,15 +93,15 @@ namespace PeriodTracker.API.Controllers
     // DTO for login requests
     public class LoginRequest
     {
-        public string Email    { get; set; }
+        public string Email { get; set; }
         public string Password { get; set; }
     }
 
     // DTO for register requests
     public class RegisterRequest
     {
-        public string Name     { get; set; }
-        public string Email    { get; set; }
+        public string Name { get; set; }
+        public string Email { get; set; }
         public string Password { get; set; }
     }
 }

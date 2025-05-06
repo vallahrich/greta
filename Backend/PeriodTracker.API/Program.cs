@@ -20,36 +20,36 @@ builder.Services.AddScoped<SymptomRepository>();
 builder.Services.AddScoped<PeriodCycleRepository>();
 builder.Services.AddScoped<CycleSymptomRepository>();
 
-// Configure CORS to allow Angular client access
+// Add CORS configuration
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularApp", policyBuilder =>
     {
         policyBuilder
-            .WithOrigins("http://localhost:4200") // Angular dev server origin
+            .WithOrigins("http://localhost:4200")
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials();                   // Allow cookies/auth headers
+            .AllowCredentials()
+            .WithExposedHeaders("Authorization");
     });
 });
 
-var app = builder.Build(); // Build the WebApplication
+var app = builder.Build();
 
-// Development-only middleware for API docs
+// Development-only middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// Enable CORS policy
+// CRITICAL: CORS MUST come BEFORE authentication middleware
 app.UseCors("AllowAngularApp");
 
-// Add custom Basic Authentication middleware
+// Then authentication middleware
 app.UseBasicAuthenticationMiddleware();
 
-// Map attribute-routed controllers
+// Map controllers
 app.MapControllers();
 
-// Start the app
 app.Run();

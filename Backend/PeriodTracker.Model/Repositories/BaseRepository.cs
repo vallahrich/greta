@@ -10,7 +10,7 @@ public class BaseRepository
     // Constructor reads the connection string from configuration
     public BaseRepository(IConfiguration configuration)
     {
-        var connString = configuration.GetConnectionString("PeriodDB");
+        var connString = configuration.GetConnectionString("gretaDB");
         if (string.IsNullOrEmpty(connString))
         {
             // Fail early if configuration is missing

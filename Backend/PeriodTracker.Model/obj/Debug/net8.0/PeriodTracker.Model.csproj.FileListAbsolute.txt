@@ -37,3 +37,16 @@ c:/Users/vince/OneDrive/master/greta/greatalovesvini-main/PeriodTracker.Model/ob
 /Users/gretawanner/Documents/PeriodTracker/greta-main/Backend/PeriodTracker.Model/obj/Debug/net8.0/PeriodTracker.Model.pdb
 /Users/gretawanner/Documents/PeriodTracker/greta-main/Backend/PeriodTracker.Model/obj/Debug/net8.0/ref/PeriodTracker.Model.dll
 /Users/gretawanner/Documents/PeriodTracker/greta-main/Backend/PeriodTracker.Model/obj/Debug/net8.0/PeriodTracker.Model.sourcelink.json
+C:\Users\vince\OneDrive\master\greta\Backend\PeriodTracker.Model\bin\Debug\net8.0\PeriodTracker.Model.deps.json
+C:\Users\vince\OneDrive\master\greta\Backend\PeriodTracker.Model\bin\Debug\net8.0\PeriodTracker.Model.dll
+C:\Users\vince\OneDrive\master\greta\Backend\PeriodTracker.Model\bin\Debug\net8.0\PeriodTracker.Model.pdb
+C:\Users\vince\OneDrive\master\greta\Backend\PeriodTracker.Model\obj\Debug\net8.0\PeriodTracker.Model.csproj.AssemblyReference.cache
+C:\Users\vince\OneDrive\master\greta\Backend\PeriodTracker.Model\obj\Debug\net8.0\PeriodTracker.Model.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\vince\OneDrive\master\greta\Backend\PeriodTracker.Model\obj\Debug\net8.0\PeriodTracker.Model.AssemblyInfoInputs.cache
+C:\Users\vince\OneDrive\master\greta\Backend\PeriodTracker.Model\obj\Debug\net8.0\PeriodTracker.Model.AssemblyInfo.cs
+C:\Users\vince\OneDrive\master\greta\Backend\PeriodTracker.Model\obj\Debug\net8.0\PeriodTracker.Model.csproj.CoreCompileInputs.cache
+C:\Users\vince\OneDrive\master\greta\Backend\PeriodTracker.Model\obj\Debug\net8.0\PeriodTracker.Model.sourcelink.json
+C:\Users\vince\OneDrive\master\greta\Backend\PeriodTracker.Model\obj\Debug\net8.0\PeriodTracker.Model.dll
+C:\Users\vince\OneDrive\master\greta\Backend\PeriodTracker.Model\obj\Debug\net8.0\refint\PeriodTracker.Model.dll
+C:\Users\vince\OneDrive\master\greta\Backend\PeriodTracker.Model\obj\Debug\net8.0\PeriodTracker.Model.pdb
+C:\Users\vince\OneDrive\master\greta\Backend\PeriodTracker.Model\obj\Debug\net8.0\ref\PeriodTracker.Model.dll

@@ -18,7 +18,14 @@ namespace PeriodTracker.API.Middleware
         // Entry point for each HTTP request
         public async Task InvokeAsync(HttpContext context)
         {
-            // Allow anonymous endpoints to bypass auth
+            // Always allow OPTIONS requests for CORS preflight
+            if (context.Request.Method == "OPTIONS")
+            {
+                await _next(context);
+                return;
+            }
+
+            // Skip auth for anonymous endpoints
             var endpoint = context.GetEndpoint();
             if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() != null)
             {
@@ -26,35 +33,43 @@ namespace PeriodTracker.API.Middleware
                 return;
             }
 
-            // Read and validate Authorization header
+            // Check authorization header
             var authHeader = context.Request.Headers["Authorization"].ToString();
             if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Basic "))
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsync("Missing or invalid Authorization header.");
+                await context.Response.WriteAsync("Authorization header missing or invalid");
                 return;
             }
 
-            // Decode credentials using helper
-            AuthenticationHelper.Decrypt(authHeader, out var userEmail, out var userPassword);
-
-            // Verify credentials against database in a scoped repository
-            using var scope = _serviceProvider.CreateScope();
-            var userRepository = scope.ServiceProvider.GetRequiredService<UserRepository>();
-            var user = userRepository.GetUserByEmail(userEmail);
-
-            if (user != null && user.Pw == userPassword)
+            try
             {
-                // Store user info for downstream consumption
-                context.Items["UserEmail"] = userEmail;
-                context.Items["UserId"]    = user.UserId;
-                await _next(context);
-                return;
-            }
+                // Decrypt credentials
+                AuthenticationHelper.Decrypt(authHeader, out var userEmail, out var userPassword);
 
-            // Invalid credentials -> reject request
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsync("Invalid credentials.");
+                // Verify credentials against database
+                using var scope = _serviceProvider.CreateScope();
+                var userRepository = scope.ServiceProvider.GetRequiredService<UserRepository>();
+                var user = userRepository.GetUserByEmail(userEmail);
+
+                if (user != null && user.Pw == userPassword)
+                {
+                    // Store user info for controllers
+                    context.Items["UserEmail"] = userEmail;
+                    context.Items["UserId"] = user.UserId;
+                    await _next(context);
+                }
+                else
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    await context.Response.WriteAsync("Invalid credentials");
+                }
+            }
+            catch (Exception ex)
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsync("Authentication error");
+            }
         }
     }
 
