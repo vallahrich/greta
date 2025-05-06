@@ -65,14 +65,6 @@ export class LoginPageComponent implements OnInit {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
-
-    // Pre-fill with test values in development
-    if (!environment.production) {
-      this.loginForm.patchValue({
-        email: 'test@example.com',
-        password: 'password123'
-      });
-    }
   }
 
   // Toggle between login and register forms

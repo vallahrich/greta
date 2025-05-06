@@ -27,7 +27,6 @@ namespace PeriodTracker.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]  // Require authentication for all actions by default
     public class UserController : ControllerBase
     {
         private readonly UserRepository _userRepository;
@@ -43,10 +42,10 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<User> GetUserByEmail(string email)
+        public ActionResult<IEnumerable<User>> GetUserByEmail(string email)
         {
             // Ensure the user is requesting their own data
-            var authEmail = HttpContext.Items["UserEmail"]?.ToString();
+            var authEmail = HttpContext.Items["UserEmail"].ToString();
             if (authEmail != email)
                 return Forbid("You can only access your own information");
 
@@ -104,7 +103,8 @@ namespace PeriodTracker.API.Controllers
             if (!_userRepository.UpdateUserPassword(request.UserId, request.Password))
                 return BadRequest("Failed to update password");
 
-            return Ok("Password updated successfully");
+            // Return JSON object instead of plain text
+            return Ok(new { message = "Password updated successfully" });
         }
 
         // DELETE: api/user/{id}
