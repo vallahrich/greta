@@ -113,16 +113,16 @@
   <app-nav-footer activeRoute="add-cycle"></app-nav-footer>
 </div>
 
-<!-- Delete confirmation dialog -->
+<!-- Delete confirmation dialog template -->
 <ng-template #deleteDialog>
   <h2 mat-dialog-title>Delete Cycle</h2>
-  <mat-dialog-content>
+  <div mat-dialog-content>
     <p>This cannot be undone. Continue?</p>
-  </mat-dialog-content>
-  <mat-dialog-actions align="end">
+  </div>
+  <div mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
     <button mat-raised-button color="warn" [mat-dialog-close]="true">
       Delete
     </button>
-  </mat-dialog-actions>
+  </div>
 </ng-template>

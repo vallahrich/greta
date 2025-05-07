@@ -1,15 +1,8 @@
-/**
- * Cycle Form Component - Add or edit period cycles
- * 
- * This component provides:
- * - Form for creating new cycles with start/end dates and notes
- * - Symptom selection with intensity rating
- * - Editing existing cycles and symptoms
- */
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule} from '@angular/forms';
+import { forkJoin } from 'rxjs';
 
 // Angular Material modules for form UI and feedback
 import { MatIconModule } from '@angular/material/icon';
@@ -23,6 +16,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 
 // App-specific services and models
 import { AuthService } from '../../services/auth.service';
@@ -32,14 +26,8 @@ import { CycleSymptomService } from '../../services/cyclesymptom.service';
 
 import { Periodcycle } from '../../models/Periodcycle';
 import { Symptom } from '../../models/Symptom';
-import { CreateCycleSymptomDto } from '../../models/CycleSymptom';
 import { NavFooterComponent } from '../shared/nav-footer.component';
-import { forkJoin } from 'rxjs';
 
-/**
- * Component for creating or editing a menstrual cycle along with associated symptoms.
- * Uses reactive forms to bind cycle dates, notes, and symptom selections.
- */
 @Component({
   selector: 'app-cycle-form-page',
   standalone: true,
@@ -59,12 +47,15 @@ import { forkJoin } from 'rxjs';
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatCheckboxModule,
+    MatDialogModule,
     NavFooterComponent
   ],
   templateUrl: './cycle-form.component.html',
   styleUrls: ['./cycle-form.component.css']
 })
 export class CycleFormPageComponent implements OnInit {
+  @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
+  
   isEditMode = false; // Flag for edit vs. create; used in template
   cycleId: number | null = null;
 
@@ -82,10 +73,12 @@ export class CycleFormPageComponent implements OnInit {
     private auth: AuthService,
     private location: Location,
     private route: ActivatedRoute,
+    private router: Router,
     private periodCycleService: PeriodCycleService,
     private symptomService: SymptomService,
     private cycleSymptomService: CycleSymptomService,
-    private snack: MatSnackBar
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -144,7 +137,7 @@ export class CycleFormPageComponent implements OnInit {
   }
   
   /**
-   * Loads an existing cycle for editing
+   * Loads an existing cycle for editing using forkJoin for parallel loading
    */
   private loadCycle(cycleId: number): void {
     const userId = this.auth.getUserId();
@@ -195,7 +188,6 @@ export class CycleFormPageComponent implements OnInit {
     });
   }
 
-
   // Convenience getter for the FormArray of symptom controls
   get symptoms(): FormArray {
     return this.cycleForm.get('symptoms') as FormArray;
@@ -215,6 +207,49 @@ export class CycleFormPageComponent implements OnInit {
    */
   cancel(): void {
     this.location.back();
+  }
+
+  /**
+   * Opens confirmation dialog for cycle deletion
+   */
+  openDeleteConfirmation(): void {
+    if (!this.cycleId) return;
+    
+    const dialogRef = this.dialog.open(this.deleteDialog);
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.deleteCycle();
+      }
+    });
+  }
+  
+  /**
+   * Deletes the current cycle
+   */
+  deleteCycle(): void {
+    if (!this.cycleId) return;
+    
+    const userId = this.auth.getUserId();
+    if (!userId) {
+      this.errorMessage = 'User authentication error. Please log in again.';
+      return;
+    }
+    
+    this.isLoading = true;
+    
+    // The backend will handle cascading delete of associated symptoms
+    this.periodCycleService.deleteCycle(this.cycleId, userId).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.snackBar.open('Cycle deleted', 'Close', { duration: 3000 });
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = 'Failed to delete cycle';
+        console.error('Error deleting cycle:', err);
+      }
+    });
   }
 
   /**
@@ -258,8 +293,20 @@ export class CycleFormPageComponent implements OnInit {
     if (!this.isEditMode) {
       this.periodCycleService.createCycle(cycle).subscribe({
         next: saved => {
-          // Use the correct method for creating symptoms
-          this.createSelectedSymptoms(saved.cycleId, startDate, selectedSymptoms);
+          // Create new cycle-symptom links
+          if (selectedSymptoms.length > 0) {
+            // Pass the newly created cycle to the update endpoint with symptoms
+            this.periodCycleService.updateCycleWithSymptoms(saved.cycleId, {
+              cycle: saved,
+              selectedSymptoms: selectedSymptoms
+            }).subscribe({
+              next: () => this.finishSave(),
+              error: err => this.handleError('Error adding symptoms', err)
+            });
+          } else {
+            // No symptoms to add, just finish
+            this.finishSave();
+          }
         },
         error: err => this.handleError('Error creating cycle', err)
       });
@@ -271,13 +318,11 @@ export class CycleFormPageComponent implements OnInit {
       cycle: cycle,
       selectedSymptoms: selectedSymptoms
     }).subscribe({
-      next: () => {
-        this.snack.open('Cycle updated', 'Close', { duration: 3000 });
-        this.location.back();
-      },
+      next: () => this.finishSave(),
       error: err => this.handleError('Error updating cycle', err)
     });
   }
+
   /**
    * Common error handler
    */
@@ -291,7 +336,7 @@ export class CycleFormPageComponent implements OnInit {
    * Show snackbar and navigate back after successful save
    */
   private finishSave(): void {
-    this.snack.open('Cycle saved', 'Close', { duration: 3000 });
+    this.snackBar.open('Cycle saved', 'Close', { duration: 3000 });
     this.location.back();
   }
 }
