@@ -57,6 +57,76 @@ namespace PeriodTracker.API.Controllers
             return Ok(cycleSymptoms);
         }
 
+        // DELETE: api/cyclesymptom/{id}
+        // Deletes a specific cycle symptom by ID
+        [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public ActionResult DeleteCycleSymptom(int id)
+        {
+            // Check if the symptom exists
+            var symptom = _cycleSymptomRepository.GetById(id);
+            if (symptom == null)
+            {
+                return NotFound($"Cycle symptom with ID {id} not found");
+            }
+
+            // Delete the symptom
+            var success = _cycleSymptomRepository.DeleteCycleSymptom(id);
+            if (!success)
+            {
+                return BadRequest("Failed to delete cycle symptom");
+            }
+
+            // Return 204 No Content for successful deletion (REST convention)
+            return NoContent();
+        }
+
+        // PUT: api/cyclesymptom/{id}
+        // Updates a specific cycle symptom
+        [HttpPut("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public ActionResult<CycleSymptom> UpdateCycleSymptom(int id, [FromBody] CycleSymptom cycleSymptom)
+        {
+            // Validate the ID in the route matches the body
+            if (id != cycleSymptom.CycleSymptomId)
+            {
+                return BadRequest("ID in URL must match ID in request body");
+            }
+
+            // Validate the intensity range (must be 1-5 scale)
+            if (cycleSymptom.Intensity < 1 || cycleSymptom.Intensity > 5)
+            {
+                return BadRequest("Intensity must be between 1 and 5");
+            }
+
+            // Check if the cycle exists
+            var cycle = _periodCycleRepository.GetById(cycleSymptom.CycleId);
+            if (cycle == null)
+            {
+                return BadRequest($"Period cycle with ID {cycleSymptom.CycleId} not found");
+            }
+
+            // Ensure the symptom date falls within the cycle's timeframe
+            if (cycleSymptom.Date < cycle.StartDate || cycleSymptom.Date > cycle.EndDate)
+            {
+                return BadRequest(
+                    $"Symptom date must be within cycle range ({cycle.StartDate:d} to {cycle.EndDate:d})"
+                );
+            }
+
+            // Update the symptom
+            var success = _cycleSymptomRepository.UpdateCycleSymptom(cycleSymptom);
+            if (!success)
+            {
+                return BadRequest("Failed to update cycle symptom");
+            }
+
+            return Ok(cycleSymptom);
+        }
+
         // POST: api/cyclesymptom
         // Creates a new symptom entry for a cycle with validation
         [HttpPost]

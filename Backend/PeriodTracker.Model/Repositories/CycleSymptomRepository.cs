@@ -45,8 +45,7 @@ public class CycleSymptomRepository : BaseRepository
                     CycleId        = Convert.ToInt32(data["cycle_id"]),
                     SymptomId      = Convert.ToInt32(data["symptom_id"]),
                     Intensity      = Convert.ToInt32(data["intensity"]),
-                    Date           = Convert.ToDateTime(data["date"]),
-                    CreatedAt      = Convert.ToDateTime(data["created_at"])
+                    Date           = Convert.ToDateTime(data["date"])
                 };
             }
             return null; // No record found
@@ -57,6 +56,35 @@ public class CycleSymptomRepository : BaseRepository
             dbConn?.Close();
         }
     }
+
+    public bool UpdateCycleSymptom(CycleSymptom cycleSymptom)
+{
+    NpgsqlConnection dbConn = null;
+    try
+    {
+        dbConn = new NpgsqlConnection(ConnectionString);
+        var cmd = dbConn.CreateCommand();
+        cmd.CommandText = @"
+            UPDATE CycleSymptoms 
+            SET cycle_id = @cycleId, 
+                symptom_id = @symptomId,
+                intensity = @intensity, 
+                date = @date
+            WHERE cycle_symptom_id = @id";
+        
+        cmd.Parameters.AddWithValue("@cycleId", NpgsqlDbType.Integer, cycleSymptom.CycleId);
+        cmd.Parameters.AddWithValue("@symptomId", NpgsqlDbType.Integer, cycleSymptom.SymptomId);
+        cmd.Parameters.AddWithValue("@intensity", NpgsqlDbType.Integer, cycleSymptom.Intensity);
+        cmd.Parameters.AddWithValue("@date", NpgsqlDbType.Date, cycleSymptom.Date);
+        cmd.Parameters.AddWithValue("@id", NpgsqlDbType.Integer, cycleSymptom.CycleSymptomId);
+
+        return UpdateData(dbConn, cmd);
+    }
+    finally
+    {
+        dbConn?.Close();
+    }
+}
 
     // Retrieves all symptoms for a specific cycle, joined with symptom details
     public List<CycleSymptom> GetSymptomsByCycleId(int cycleId)
@@ -128,30 +156,6 @@ public class CycleSymptomRepository : BaseRepository
         catch
         {
             return false;
-        }
-        finally
-        {
-            dbConn?.Close();
-        }
-    }
-
-    // Updates an existing symptom record (intensity or date)
-    public bool UpdateCycleSymptom(CycleSymptom cycleSymptom)
-    {
-        NpgsqlConnection dbConn = null;
-        try
-        {
-            dbConn = new NpgsqlConnection(ConnectionString);
-            var cmd = dbConn.CreateCommand();
-            cmd.CommandText = @"
-                UPDATE CycleSymptoms 
-                SET intensity = @intensity, date = @date
-                WHERE cycle_symptom_id = @id";
-            cmd.Parameters.AddWithValue("@intensity", NpgsqlDbType.Integer, cycleSymptom.Intensity);
-            cmd.Parameters.AddWithValue("@date", NpgsqlDbType.Date, cycleSymptom.Date);
-            cmd.Parameters.AddWithValue("@id", NpgsqlDbType.Integer, cycleSymptom.CycleSymptomId);
-
-            return UpdateData(dbConn, cmd);
         }
         finally
         {

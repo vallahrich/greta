@@ -37,6 +37,8 @@ import { CycleSymptomService } from '../../services/cyclesymptom.service';
 import { Periodcycle } from '../../models/Periodcycle';
 import { Symptom } from '../../models/Symptom';
 import { CreateCycleSymptomDto } from '../../models/CycleSymptom';
+import { NavFooterComponent } from '../shared/nav-footer.component';
+
 
 /**
  * Component for creating or editing a menstrual cycle along with associated symptoms.
@@ -61,7 +63,8 @@ import { CreateCycleSymptomDto } from '../../models/CycleSymptom';
     MatDialogModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+    NavFooterComponent
   ],
   templateUrl: './cycle-form.component.html',
   styleUrls: ['./cycle-form.component.css']
