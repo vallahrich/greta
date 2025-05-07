@@ -1,5 +1,5 @@
-<div class="profile-container">
-  <header class="profile-header">
+<div class="page-container">
+  <header class="page-header">
     <h1>Your Profile</h1>
     <div class="header-actions">
       <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Menu">
@@ -22,7 +22,7 @@
     </div>
   </header>
 
-  <div class="profile-content">
+  <div class="page-content">
     @if (isLoading) {
       <div class="loading-container">
         <mat-spinner diameter="40"></mat-spinner>
@@ -49,7 +49,7 @@
     }
 
     @if (!isLoading && user) {
-      <mat-card class="profile-card">
+      <mat-card class="content-card">
         <div class="profile-header-section">
           <div class="avatar-container">
             <div class="avatar">{{ user.name.charAt(0) }}</div>
@@ -84,7 +84,7 @@
 
     <!-- Edit form -->
     @if (editMode && !isLoading) {
-      <mat-card class="profile-card">
+      <mat-card class="content-card">
         <mat-card-header>
           <mat-card-title>Edit Profile</mat-card-title>
         </mat-card-header>
@@ -119,7 +119,7 @@
 
     <!-- Password form -->
     @if (changePasswordMode && !isLoading) {
-      <mat-card class="profile-card">
+      <mat-card class="content-card">
         <mat-card-header>
           <mat-card-title>Change Password</mat-card-title>
         </mat-card-header>
@@ -192,7 +192,7 @@
   </div>
 
   <!-- Navigation Footer -->
-  <nav class="profile-nav">
+  <nav class="page-nav">
     <a mat-raised-button routerLink="/dashboard">
       <mat-icon>home</mat-icon> Dashboard
     </a>

@@ -1,6 +1,6 @@
-<div class="calendar-container">
+<div class="page-container">
   <!-- Header: title and menu actions -->
-  <header class="calendar-header">
+  <header class="page-header">
     <h1>Period Calendar</h1>
     <div class="header-actions">
       <!-- Menu trigger opens Angular Material menu -->
@@ -26,7 +26,7 @@
   </header>
 
   <!-- Main content: calendar and legend -->
-  <div class="calendar-content">
+  <div class="page-content">
     <!-- Month navigation: back/forward buttons and month label -->
     <div class="month-navigation">
       <button mat-icon-button class="nav-button" (click)="navigateMonth(-1)">
@@ -54,7 +54,7 @@
     
     <!-- Calendar grid: shown when not loading -->
     @if (!isLoading) {
-      <div class="calendar-grid">
+      <div class="content-card">
         <!-- Weekday headings row -->
         <div class="weekday-header">
           @for (day of weekDays; track day) {
@@ -102,7 +102,7 @@
   </div>
 
   <!-- Bottom navigation bar with primary routes -->
-  <nav class="calendar-nav">
+  <nav class="page-nav">
     <a mat-raised-button routerLink="/dashboard">
       <mat-icon>home</mat-icon> Dashboard
     </a>
