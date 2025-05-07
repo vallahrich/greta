@@ -38,13 +38,18 @@ export class PeriodCycleService {
    * Adapts Date fields to ISO strings for transmission.
    */
   createCycle(cycle: Periodcycle): Observable<Periodcycle> {
+    // Helper function to preserve local date without timezone shifts
+    const formatLocalDate = (date: Date): string => {
+      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    };
+
     const adaptedCycle = {
       cycleId: cycle.cycleId,
       userId: cycle.userId,
       startDate: cycle.startDate instanceof Date ? 
-        cycle.startDate.toISOString().split('T')[0] : cycle.startDate,
+        formatLocalDate(cycle.startDate) : cycle.startDate,
       endDate: cycle.endDate instanceof Date ? 
-        cycle.endDate.toISOString().split('T')[0] : cycle.endDate,
+        formatLocalDate(cycle.endDate) : cycle.endDate,
       notes: cycle.notes || null
     };
     
@@ -61,7 +66,24 @@ export class PeriodCycleService {
    * Adapts Date fields to ISO strings for transmission.
    */
   updateCycleWithSymptoms(cycleId: number, request: any): Observable<Periodcycle> {
-    return this.http.put<Periodcycle>(`${this.apiUrl}/${cycleId}/with-symptoms`, request).pipe(
+    // Format dates to preserve local date values
+    const formatLocalDate = (date: Date): string => {
+      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    };
+
+    // Clone and format the request dates
+    const formattedRequest = {
+      ...request,
+      cycle: {
+        ...request.cycle,
+        startDate: request.cycle.startDate instanceof Date ? 
+          formatLocalDate(request.cycle.startDate) : request.cycle.startDate,
+        endDate: request.cycle.endDate instanceof Date ? 
+          formatLocalDate(request.cycle.endDate) : request.cycle.endDate,
+      }
+    };
+
+    return this.http.put<Periodcycle>(`${this.apiUrl}/${cycleId}/with-symptoms`, formattedRequest).pipe(
       catchError(error => {
         console.error('Error updating cycle with symptoms:', error);
         return throwError(() => error);

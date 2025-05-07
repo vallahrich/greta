@@ -34,6 +34,7 @@ import { Periodcycle } from '../../models/Periodcycle';
 import { Symptom } from '../../models/Symptom';
 import { CreateCycleSymptomDto } from '../../models/CycleSymptom';
 import { NavFooterComponent } from '../shared/nav-footer.component';
+import { forkJoin } from 'rxjs';
 
 /**
  * Component for creating or editing a menstrual cycle along with associated symptoms.
@@ -153,10 +154,17 @@ export class CycleFormPageComponent implements OnInit {
     }
 
     this.isLoading = true;
-    this.periodCycleService.getCyclesByUserId(userId).subscribe({
-      next: cycles => {
-        const cycle = cycles.find(c => c.cycleId === cycleId);
+
+    // Use forkJoin to load both cycle and symptoms in parallel
+    forkJoin({
+      cycles: this.periodCycleService.getCyclesByUserId(userId),
+      symptoms: this.cycleSymptomService.getCycleSymptomsByCycleId(cycleId)
+    }).subscribe({
+      next: (result) => {
+        const cycle = result.cycles.find(c => c.cycleId === cycleId);
+        
         if (cycle) {
+          // Patch form with cycle data
           this.cycleForm.patchValue({
             cycleId: cycle.cycleId,
             startDate: new Date(cycle.startDate),
@@ -164,44 +172,29 @@ export class CycleFormPageComponent implements OnInit {
             notes: cycle.notes || ''
           });
           
-          // Load symptoms
-          this.loadCycleSymptoms(cycleId);
+          // Set symptom selection based on loaded symptoms
+          result.symptoms.forEach(cs => {
+            const index = this.allSymptoms.findIndex(s => s.symptomId === cs.symptomId);
+            if (index !== -1 && index < this.symptoms.controls.length) {
+              const control = this.symptoms.at(index);
+              control.get('selected')?.setValue(true);
+              control.get('intensity')?.setValue(cs.intensity);
+            }
+          });
         } else {
           this.errorMessage = 'Cycle not found';
-          this.isLoading = false;
         }
+        
+        this.isLoading = false;
       },
-      error: err => {
-        console.error('Error loading cycle:', err);
+      error: (err) => {
+        console.error('Error loading cycle data:', err);
         this.errorMessage = 'Failed to load cycle data';
         this.isLoading = false;
       }
     });
   }
-  
-  /**
-   * Loads symptoms associated with a cycle and sets form values
-   */
-  private loadCycleSymptoms(cycleId: number): void {
-    this.cycleSymptomService.getCycleSymptomsByCycleId(cycleId).subscribe({
-      next: symptoms => {
-        // For each symptom in the cycle, set corresponding checkbox and intensity
-        symptoms.forEach(cs => {
-          const index = this.allSymptoms.findIndex(s => s.symptomId === cs.symptomId);
-          if (index !== -1 && index < this.symptoms.controls.length) {
-            const control = this.symptoms.at(index);
-            control.get('selected')?.setValue(true);
-            control.get('intensity')?.setValue(cs.intensity);
-          }
-        });
-        this.isLoading = false;
-      },
-      error: err => {
-        console.error('Error loading cycle symptoms:', err);
-        this.isLoading = false;
-      }
-    });
-  }
+
 
   // Convenience getter for the FormArray of symptom controls
   get symptoms(): FormArray {

@@ -53,7 +53,8 @@ export class CycleSymptomService {
     );
   }
   
-  // Deletes a single CycleSymptom by its ID
+  // Add a method to delete all symptoms for a cycle in one call (if not already present)
+  // This may or may not be needed depending on how you decide to simplify deletion
   deleteCycleSymptomsByCycleId(cycleId: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/cycle/${cycleId}`).pipe(
       catchError(error => {

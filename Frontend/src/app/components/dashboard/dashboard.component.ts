@@ -189,48 +189,7 @@ export class DashboardPageComponent implements OnInit {
       return;
     }
     
-    // First delete all associated symptoms
-    this.cycleSymptomService.getCycleSymptomsByCycleId(cycleId).subscribe({
-      next: (symptoms) => {
-        if (symptoms.length === 0) {
-          // No symptoms to delete, proceed to delete the cycle
-          this.deleteCycleAfterSymptoms(cycleId, userId);
-        } else {
-          // Delete each symptom individually
-          let deletedCount = 0;
-          const totalToDelete = symptoms.length;
-          
-          symptoms.forEach(symptom => {
-            this.cycleSymptomService.deleteCycleSymptom(symptom.cycleSymptomId).subscribe({
-              next: () => {
-                deletedCount++;
-                if (deletedCount === totalToDelete) {
-                  // All symptoms deleted, now delete the cycle
-                  this.deleteCycleAfterSymptoms(cycleId, userId);
-                }
-              },
-              error: (err: any) => {
-                console.error(`Error deleting symptom ${symptom.cycleSymptomId}:`, err);
-                deletedCount++;
-                if (deletedCount === totalToDelete) {
-                  // Continue with cycle deletion even if some symptom deletions failed
-                  this.deleteCycleAfterSymptoms(cycleId, userId);
-                }
-              }
-            });
-          });
-        }
-      },
-      error: (err) => {
-        console.error('Error fetching symptoms for deletion:', err);
-        // Attempt to delete the cycle anyway
-        this.deleteCycleAfterSymptoms(cycleId, userId);
-      }
-    });
-  }
-  
-  // Add this helper method
-  private deleteCycleAfterSymptoms(cycleId: number, userId: number): void {
+    // Directly delete the cycle - the backend will handle symptom deletion
     this.periodCycleService.deleteCycle(cycleId, userId).subscribe({
       next: () => {
         // Remove from local array (avoids reload)
@@ -248,7 +207,7 @@ export class DashboardPageComponent implements OnInit {
       }
     });
   }
-
+  
   /** 
    * Logs out the current user
    */
