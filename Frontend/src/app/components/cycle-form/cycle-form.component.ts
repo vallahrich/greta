@@ -154,7 +154,7 @@ export class CycleFormPageComponent implements OnInit {
           });
           
           // Set symptom selection
-          cycle.symptoms.forEach(cs => {
+          cycle.symptoms.forEach((cs: { symptomId: number; intensity: any; date: string | number | Date; }) => {
             const index = this.allSymptoms.findIndex(s => s.symptomId === cs.symptomId);
             if (index !== -1 && index < this.symptoms.controls.length) {
               const control = this.symptoms.at(index);
@@ -260,7 +260,7 @@ export class CycleFormPageComponent implements OnInit {
         .filter(c => c.value.selected)
         .map(c => ({
           symptomId: c.value.symptomId,
-          symptomName: c.value.symptomName,
+          name: c.value.symptomName, // Changed from symptomName to name to match the model
           intensity: c.value.intensity,
           date: c.value.date || this.cycleForm.value.startDate
         }))

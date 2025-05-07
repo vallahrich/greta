@@ -40,14 +40,14 @@ namespace PeriodTracker.API.Controllers
 
             // Get all cycles for this user
             var cycles = _periodCycleRepository.GetCyclesByUserId(userId);
-            
+
             // Map to DTOs with symptoms
             var result = new List<CycleWithSymptomsDto>();
-            
+
             foreach (var cycle in cycles)
             {
                 var symptoms = _cycleSymptomRepository.GetSymptomsByCycleId(cycle.CycleId);
-                
+
                 var cycleDto = new CycleWithSymptomsDto
                 {
                     CycleId = cycle.CycleId,
@@ -58,15 +58,15 @@ namespace PeriodTracker.API.Controllers
                     Symptoms = symptoms.Select(s => new CycleSymptomDto
                     {
                         SymptomId = s.SymptomId,
-                        SymptomName = s.Symptom?.Name ?? "Unknown",
+                        Name = s.Symptom?.Name ?? "Unknown",  // Changed from SymptomName to Name
                         Intensity = s.Intensity,
                         Date = s.Date
                     }).ToList()
                 };
-                
+
                 result.Add(cycleDto);
             }
-            
+
             return Ok(result);
         }
 
@@ -82,15 +82,15 @@ namespace PeriodTracker.API.Controllers
                 return StatusCode(500, "Authentication context missing");
 
             int userId = Convert.ToInt32(authItem);
-            
+
             // Verify userId matches authenticated user
             if (userId != cycleData.UserId)
                 return Forbid("You can only create cycles for yourself");
-                
+
             // Validate date ordering
             if (cycleData.EndDate < cycleData.StartDate)
                 return BadRequest("End date must be after start date");
-                
+
             // Create cycle entity
             var cycle = new PeriodCycle
             {
@@ -100,11 +100,11 @@ namespace PeriodTracker.API.Controllers
                 Notes = cycleData.Notes,
                 CreatedAt = DateTime.UtcNow
             };
-            
+
             // Insert cycle
             if (!_periodCycleRepository.InsertCycle(cycle))
                 return BadRequest("Failed to create cycle");
-                
+
             // Add symptoms if any
             if (cycleData.Symptoms != null && cycleData.Symptoms.Count > 0)
             {
@@ -118,11 +118,11 @@ namespace PeriodTracker.API.Controllers
                         Date = symptomDto.Date,
                         CreatedAt = DateTime.UtcNow
                     };
-                    
+
                     _cycleSymptomRepository.InsertCycleSymptom(cycleSymptom);
                 }
             }
-            
+
             // Return the created cycle with its ID
             cycleData.CycleId = cycle.CycleId;
             return CreatedAtAction(nameof(GetUserCycles), cycleData);
@@ -141,24 +141,24 @@ namespace PeriodTracker.API.Controllers
                 return StatusCode(500, "Authentication context missing");
 
             int userId = Convert.ToInt32(authItem);
-            
+
             // Verify user can update this cycle
             if (userId != cycleData.UserId)
                 return Forbid("You can only update your own cycles");
-                
+
             // Validate that ID matches
             if (id != cycleData.CycleId)
                 return BadRequest("Cycle ID in URL must match the ID in the request body");
-                
+
             // Ensure cycle exists
             var existing = _periodCycleRepository.GetById(id);
             if (existing == null)
                 return NotFound($"Cycle with ID {id} not found");
-                
+
             // Validate date ordering
             if (cycleData.EndDate < cycleData.StartDate)
                 return BadRequest("End date must be after start date");
-                
+
             // Update cycle entity
             var cycle = new PeriodCycle
             {
@@ -168,14 +168,14 @@ namespace PeriodTracker.API.Controllers
                 EndDate = cycleData.EndDate,
                 Notes = cycleData.Notes
             };
-            
+
             // Update in database
             if (!_periodCycleRepository.UpdateCycle(cycle))
                 return BadRequest("Failed to update cycle");
-                
+
             // Handle symptoms - first delete all existing
             _cycleSymptomRepository.DeleteCycleSymptomsByCycleId(id);
-            
+
             // Then add new symptoms
             if (cycleData.Symptoms != null && cycleData.Symptoms.Count > 0)
             {
@@ -189,11 +189,11 @@ namespace PeriodTracker.API.Controllers
                         Date = symptomDto.Date,
                         CreatedAt = DateTime.UtcNow
                     };
-                    
+
                     _cycleSymptomRepository.InsertCycleSymptom(cycleSymptom);
                 }
             }
-            
+
             return Ok(cycleData);
         }
 
@@ -210,27 +210,27 @@ namespace PeriodTracker.API.Controllers
                 return StatusCode(500, "Authentication context missing");
 
             int userId = Convert.ToInt32(authItem);
-            
+
             // Check if cycle exists
             var existing = _periodCycleRepository.GetById(id);
             if (existing == null)
                 return NotFound($"Cycle with ID {id} not found");
-                
+
             // Verify user can delete this cycle
             if (existing.UserId != userId)
                 return StatusCode(StatusCodes.Status403Forbidden, "Cannot delete others' cycles");
-                
+
             // Delete associated symptoms first
             _cycleSymptomRepository.DeleteCycleSymptomsByCycleId(id);
-            
+
             // Then delete the cycle
             if (!_periodCycleRepository.DeleteCycle(id, userId))
                 return BadRequest("Failed to delete cycle");
-                
+
             return NoContent();
         }
     }
-    
+
     public class CycleWithSymptomsDto
     {
         public int CycleId { get; set; }

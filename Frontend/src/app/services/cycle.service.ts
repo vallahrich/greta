@@ -36,7 +36,7 @@ export class CycleService {
         formatLocalDate(cycle.endDate) : cycle.endDate,
       symptoms: cycle.symptoms.map(s => ({
         symptomId: s.symptomId,
-        symptomName: s.name, // Map from 'name' to 'symptomName' for the backend
+        name: s.name, // Changed from symptomName to name to match backend
         intensity: s.intensity,
         date: s.date instanceof Date ? formatLocalDate(s.date) : s.date
       }))

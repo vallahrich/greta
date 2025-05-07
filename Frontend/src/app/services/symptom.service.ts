@@ -17,13 +17,13 @@ import { Symptom } from '../models/Symptom';
   providedIn: 'root'
 })
 export class SymptomService {
-  private apiUrl = `${environment.apiUrl}/symptoms`;
+  private apiUrl = `${environment.apiUrl}/symptom`;
   
   constructor(private http: HttpClient) {}
   
   // Get catalog of available symptoms
   getSymptomCatalog(): Observable<Symptom[]> {
-    return this.http.get<Symptom[]>(`${this.apiUrl}/catalog`).pipe(
+    return this.http.get<Symptom[]>(this.apiUrl).pipe(
       catchError(error => {
         console.error('Error fetching symptoms:', error);
         return throwError(() => error);
