@@ -5,14 +5,11 @@
  * - Form for creating new cycles with start/end dates and notes
  * - Symptom selection with intensity rating
  * - Editing existing cycles and symptoms
- * - Deletion of cycles with confirmation
- * 
- * It handles the core data entry functionality of the app.
  */
-import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import {  FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule} from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule} from '@angular/forms';
 
 // Angular Material modules for form UI and feedback
 import { MatIconModule } from '@angular/material/icon';
@@ -23,7 +20,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -36,9 +32,8 @@ import { CycleSymptomService } from '../../services/cyclesymptom.service';
 
 import { Periodcycle } from '../../models/Periodcycle';
 import { Symptom } from '../../models/Symptom';
-import { CreateCycleSymptomDto, CycleSymptom } from '../../models/CycleSymptom';
+import { CreateCycleSymptomDto } from '../../models/CycleSymptom';
 import { NavFooterComponent } from '../shared/nav-footer.component';
-
 
 /**
  * Component for creating or editing a menstrual cycle along with associated symptoms.
@@ -60,7 +55,6 @@ import { NavFooterComponent } from '../shared/nav-footer.component';
     MatDatepickerModule,
     MatNativeDateModule,
     MatDividerModule,
-    MatDialogModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatCheckboxModule,
@@ -70,9 +64,6 @@ import { NavFooterComponent } from '../shared/nav-footer.component';
   styleUrls: ['./cycle-form.component.css']
 })
 export class CycleFormPageComponent implements OnInit {
-  // Reference to the delete confirmation dialog template
-  @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
-
   isEditMode = false; // Flag for edit vs. create; used in template
   cycleId: number | null = null;
 
@@ -93,8 +84,7 @@ export class CycleFormPageComponent implements OnInit {
     private periodCycleService: PeriodCycleService,
     private symptomService: SymptomService,
     private cycleSymptomService: CycleSymptomService,
-    private snack: MatSnackBar,
-    private dialog: MatDialog
+    private snack: MatSnackBar
   ) {}
 
   ngOnInit(): void {
@@ -112,7 +102,6 @@ export class CycleFormPageComponent implements OnInit {
       if (params['cycle_id']) {
         this.isEditMode = true;
         this.cycleId = +params['cycle_id'];
-        this.loadCycle(this.cycleId);
       }
     });
 
@@ -236,36 +225,24 @@ export class CycleFormPageComponent implements OnInit {
   }
 
   /**
-   * Opens confirmation dialog before deleting a cycle
-   */
-  openDeleteConfirmation(): void {
-    this.dialog.open(this.deleteDialog)
-      .afterClosed()
-      .subscribe(confirmed => {
-        if (confirmed) this.deleteCycle();
-      });
-  }
-
-  /**
    * Saves the cycle and its symptom links to the server
    * Uses createCycle for new cycles and updateCycle for existing ones
    */
   saveCycle(): void {
     if (this.cycleForm.invalid) return;
     this.isLoading = true;
-
+  
     const userId = this.auth.getUserId();
     if (!userId) {
       this.errorMessage = 'User authentication error. Please log in again.';
       this.isLoading = false;
       return;
     }
-
+  
+    // Get cycle data from form
     const { startDate, endDate, notes } = this.cycleForm.value;
-    // Compute duration inclusive of start and end
     const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000*60*60*24)) + 1;
-
-    // Build cycle DTO
+  
     const cycle: Periodcycle = { 
       cycleId: this.isEditMode ? this.cycleId! : 0, 
       userId, 
@@ -275,154 +252,39 @@ export class CycleFormPageComponent implements OnInit {
       duration, 
       createdAt: new Date() 
     };
-
-    // Use the appropriate service method based on whether we're editing or creating
-    const saveObservable = this.isEditMode 
-      ? this.periodCycleService.updateCycle(cycle) 
-      : this.periodCycleService.createCycle(cycle);
-
-    saveObservable.subscribe({
-      next: saved => {
-        // If updating, use the existing cycleId
-        const savedCycleId = this.isEditMode ? this.cycleId! : saved.cycleId;
-        
-        // First delete existing symptoms if editing (to avoid duplicates)
-        if (this.isEditMode) {
-          this.handleExistingSymptoms(savedCycleId, startDate);
-        } else {
-          // For new cycles, just save the symptoms
-          this.saveSymptoms(savedCycleId, startDate);
-        }
-      },
-      error: err => this.handleError('Error saving cycle', err)
-    });
-  }
-
-  /**
-   * Handles existing symptoms when editing a cycle
-   * 1. Gets existing symptoms
-   * 2. Deletes them one by one
-   * 3. Then creates the new symptoms
-   */
-  private handleExistingSymptoms(cycleId: number, date: Date): void {
-    // Get selected symptoms from form
+  
+    // Get selected symptoms
     const selectedSymptoms = this.symptoms.controls
-      .map(c => c.value)
-      .filter((c: any) => c.selected)
-      .map((c: any) => ({
-        symptomId: c.symptomId,
-        intensity: c.intensity
+      .filter(c => c.value.selected)
+      .map(c => ({
+        symptomId: c.value.symptomId,
+        intensity: c.value.intensity
       }));
   
-    // First get all existing symptoms
-    this.cycleSymptomService.getCycleSymptomsByCycleId(cycleId).subscribe({
-      next: existingSymptoms => {
-        // Track operations for completion
-        let totalOperations = 0;
-        let completedOperations = 0;
-        const updateQueue: CycleSymptom[] = [];
-        const createQueue: CreateCycleSymptomDto[] = [];
-        
-        // Find symptoms to update (exist in DB and are still selected)
-        selectedSymptoms.forEach(selected => {
-          const existing = existingSymptoms.find(e => e.symptomId === selected.symptomId);
-          
-          if (existing) {
-            // Update intensity if changed
-            if (existing.intensity !== selected.intensity) {
-              updateQueue.push({
-                ...existing,
-                intensity: selected.intensity
-              });
-            }
-          } else {
-            // This is a new symptom, add to create queue
-            createQueue.push({
-              cycleId,
-              symptomId: selected.symptomId,
-              intensity: selected.intensity,
-              date: date.toISOString().split('T')[0] // Fix for date issue
-            });
-          }
-        });
-        
-        // Find symptoms to delete (in DB but not selected anymore)
-        const deleteQueue = existingSymptoms.filter(existing => 
-          !selectedSymptoms.some(s => s.symptomId === existing.symptomId)
-        );
+    // For new cycles, use existing create method
+    if (!this.isEditMode) {
+      this.periodCycleService.createCycle(cycle).subscribe({
+        next: saved => {
+          // Use the correct method for creating symptoms
+          this.createSelectedSymptoms(saved.cycleId, startDate, selectedSymptoms);
+        },
+        error: err => this.handleError('Error creating cycle', err)
+      });
+      return;
+    }
   
-        // Calculate total operations
-        totalOperations = updateQueue.length + createQueue.length + deleteQueue.length;
-        
-        // If no operations needed, we're done
-        if (totalOperations === 0) {
-          this.finishSave();
-          return;
-        }
-  
-        // Process updates
-        updateQueue.forEach(symptom => {
-          this.cycleSymptomService.updateCycleSymptom(symptom).subscribe({
-            next: () => {
-              if (++completedOperations === totalOperations) this.finishSave();
-            },
-            error: err => this.handleError('Error updating symptom', err)
-          });
-        });
-  
-        // Process creates
-        createQueue.forEach(dto => {
-          this.cycleSymptomService.createCycleSymptom(dto).subscribe({
-            next: () => {
-              if (++completedOperations === totalOperations) this.finishSave();
-            },
-            error: err => this.handleError('Error creating symptom', err)
-          });
-        });
-  
-        // Process deletes
-        deleteQueue.forEach(symptom => {
-          this.cycleSymptomService.deleteCycleSymptom(symptom.cycleSymptomId).subscribe({
-            next: () => {
-              if (++completedOperations === totalOperations) this.finishSave();
-            },
-            error: err => this.handleError('Error deleting symptom', err)
-          });
-        });
+    // For editing, use the new endpoint that handles both cycle and symptoms
+    this.periodCycleService.updateCycleWithSymptoms(this.cycleId!, {
+      cycle: cycle,
+      selectedSymptoms: selectedSymptoms
+    }).subscribe({
+      next: () => {
+        this.snack.open('Cycle updated', 'Close', { duration: 3000 });
+        this.location.back();
       },
-      error: err => {
-        console.error('Error fetching existing symptoms:', err);
-        // Fall back to creating all symptoms if we can't get existing ones
-        this.saveSymptoms(cycleId, date);
-      }
+      error: err => this.handleError('Error updating cycle', err)
     });
   }
-
-  /**
-   * Helper to save selected symptoms after cycle is created
-   */
-  private saveSymptoms(cycleId: number, date: Date): void {
-    const links: CreateCycleSymptomDto[] = this.symptoms.controls
-      .map(c => c.value)
-      .filter((c:any) => c.selected)
-      .map((c:any) => ({ 
-        cycleId, 
-        symptomId: c.symptomId, 
-        intensity: c.intensity, 
-        date: date.toISOString().slice(0,10) 
-      }));
-
-    if (!links.length) return this.finishSave();
-
-    let done = 0;
-    links.forEach(dto =>
-      this.cycleSymptomService.createCycleSymptom(dto).subscribe({
-        next: () => { if (++done === links.length) this.finishSave(); },
-        error: err => this.handleError('Error saving symptoms', err)
-      })
-    );
-  }
-
   /**
    * Common error handler
    */
@@ -438,26 +300,5 @@ export class CycleFormPageComponent implements OnInit {
   private finishSave(): void {
     this.snack.open('Cycle saved', 'Close', { duration: 3000 });
     this.location.back();
-  }
-
-  /**
-   * Deletes the cycle and returns to previous page
-   */
-  private deleteCycle(): void {
-    if (!this.cycleId) return;
-    
-    const userId = this.auth.getUserId();
-    if (!userId) {
-      this.errorMessage = 'User authentication error. Please log in again.';
-      return;
-    }
-    
-    this.periodCycleService.deleteCycle(this.cycleId, userId).subscribe({
-      next: () => { 
-        this.snack.open('Deleted', 'Close', { duration: 2000 }); 
-        this.location.back(); 
-      },
-      error: err => this.handleError('Delete failed', err)
-    });
   }
 }

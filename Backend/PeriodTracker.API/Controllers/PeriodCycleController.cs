@@ -94,27 +94,26 @@ namespace PeriodTracker.API.Controllers
             );
         }
 
-        // PUT: api/periodcycle/{id}
-        // Updates an existing period cycle record with validation
-        [HttpPut("{id}")]
+        // PUT: api/periodcycle/{id}/with-symptoms
+        [HttpPut("{id}/with-symptoms")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public ActionResult<PeriodCycle> UpdateCycle(int id, [FromBody] PeriodCycle cycle)
+        public ActionResult UpdateCycleWithSymptoms(int id, [FromBody] CycleUpdateRequest request)
         {
-            // Get the authenticated user's ID from context
+            // Authentication check
             var authItem = HttpContext.Items["UserId"];
             if (authItem == null)
                 return StatusCode(500, "Authentication context missing");
 
             // Enforce that users can only update their own cycles
             int authUserId = Convert.ToInt32(authItem);
-            if (authUserId != cycle.UserId)
+            if (authUserId != request.Cycle.UserId)
                 return Forbid("You can only update your own cycles");
 
             // Validate that the specified ID matches the cycle body
-            if (id != cycle.CycleId)
+            if (id != request.Cycle.CycleId)
                 return BadRequest("Cycle ID in URL must match the ID in the request body");
 
             // Ensure cycle exists
@@ -123,14 +122,34 @@ namespace PeriodTracker.API.Controllers
                 return NotFound($"Period cycle with ID {id} not found");
 
             // Validate date ordering
-            if (cycle.EndDate < cycle.StartDate)
+            if (request.Cycle.EndDate < request.Cycle.StartDate)
                 return BadRequest("End date must be after start date");
 
-            // Add a UpdateCycle method to PeriodCycleRepository (code below)
-            if (!_periodCycleRepository.UpdateCycle(cycle))
+            // Update the cycle
+            if (!_periodCycleRepository.UpdateCycle(request.Cycle))
                 return BadRequest("Failed to update period cycle");
 
-            return Ok(cycle);
+            // Handle symptoms - first delete all existing symptoms
+            _cycleSymptomRepository.DeleteCycleSymptomsByCycleId(id);
+
+            // Then create new symptoms based on the selection
+            if (request.SelectedSymptoms != null && request.SelectedSymptoms.Count > 0)
+            {
+                foreach (var symptomDto in request.SelectedSymptoms)
+                {
+                    var cycleSymptom = new CycleSymptom
+                    {
+                        CycleId = id,
+                        SymptomId = symptomDto.SymptomId,
+                        Intensity = symptomDto.Intensity,
+                        Date = request.Cycle.StartDate // Use start date or adjust as needed
+                    };
+
+                    _cycleSymptomRepository.InsertCycleSymptom(cycleSymptom);
+                }
+            }
+
+            return Ok(request.Cycle);
         }
 
         // DELETE: api/periodcycle/{id}/user/{userId}
@@ -162,6 +181,19 @@ namespace PeriodTracker.API.Controllers
 
             // Return 204 No Content for successful deletion (REST convention)
             return NoContent();
+        }
+
+        // DTO for cycle update request
+        public class CycleUpdateRequest
+        {
+            public PeriodCycle Cycle { get; set; }
+            public List<CycleSymptomDto> SelectedSymptoms { get; set; }
+        }
+
+        public class CycleSymptomDto
+        {
+            public int SymptomId { get; set; }
+            public int Intensity { get; set; }
         }
     }
 }

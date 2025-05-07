@@ -60,20 +60,10 @@ export class PeriodCycleService {
    * Updates an existing period cycle record.
    * Adapts Date fields to ISO strings for transmission.
    */
-  updateCycle(cycle: Periodcycle): Observable<Periodcycle> {
-    const adaptedCycle = {
-      cycleId: cycle.cycleId,
-      userId: cycle.userId,
-      startDate: cycle.startDate instanceof Date ? 
-        cycle.startDate.toISOString().split('T')[0] : cycle.startDate,
-      endDate: cycle.endDate instanceof Date ? 
-        cycle.endDate.toISOString().split('T')[0] : cycle.endDate,
-      notes: cycle.notes || null
-    };
-    
-    return this.http.put<Periodcycle>(`${this.apiUrl}/${cycle.cycleId}`, adaptedCycle).pipe(
+  updateCycleWithSymptoms(cycleId: number, request: any): Observable<Periodcycle> {
+    return this.http.put<Periodcycle>(`${this.apiUrl}/${cycleId}/with-symptoms`, request).pipe(
       catchError(error => {
-        console.error('Error updating cycle:', error);
+        console.error('Error updating cycle with symptoms:', error);
         return throwError(() => error);
       })
     );
