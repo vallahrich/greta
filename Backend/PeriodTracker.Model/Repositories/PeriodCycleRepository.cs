@@ -38,11 +38,11 @@ public class PeriodCycleRepository : BaseRepository
                 // Map database row to PeriodCycle entity
                 return new PeriodCycle
                 {
-                    CycleId   = Convert.ToInt32(data["cycle_id"]),
-                    UserId    = Convert.ToInt32(data["user_id"]),
+                    CycleId = Convert.ToInt32(data["cycle_id"]),
+                    UserId = Convert.ToInt32(data["user_id"]),
                     StartDate = Convert.ToDateTime(data["start_date"]),
-                    EndDate   = Convert.ToDateTime(data["end_date"]),
-                    Notes     = data["notes"] != DBNull.Value ? data["notes"].ToString() : null,
+                    EndDate = Convert.ToDateTime(data["end_date"]),
+                    Notes = data["notes"] != DBNull.Value ? data["notes"].ToString() : null,
                     CreatedAt = Convert.ToDateTime(data["created_at"])
                 };
             }
@@ -73,11 +73,11 @@ public class PeriodCycleRepository : BaseRepository
                 // Add each cycle to the list
                 cycles.Add(new PeriodCycle
                 {
-                    CycleId   = Convert.ToInt32(data["cycle_id"]),
-                    UserId    = Convert.ToInt32(data["user_id"]),
+                    CycleId = Convert.ToInt32(data["cycle_id"]),
+                    UserId = Convert.ToInt32(data["user_id"]),
                     StartDate = Convert.ToDateTime(data["start_date"]),
-                    EndDate   = Convert.ToDateTime(data["end_date"]),
-                    Notes     = data["notes"] != DBNull.Value ? data["notes"].ToString() : null,
+                    EndDate = Convert.ToDateTime(data["end_date"]),
+                    Notes = data["notes"] != DBNull.Value ? data["notes"].ToString() : null,
                     CreatedAt = Convert.ToDateTime(data["created_at"])
                 });
             }
@@ -119,6 +119,41 @@ public class PeriodCycleRepository : BaseRepository
         {
             // Log error
             Console.WriteLine($"[PeriodCycleRepository] Error inserting cycle: {ex.Message}");
+            return false;
+        }
+        finally
+        {
+            dbConn?.Close();
+        }
+    }
+
+    // Updates an existing PeriodCycle record in the database
+    public bool UpdateCycle(PeriodCycle cycle)
+    {
+        NpgsqlConnection dbConn = null;
+        try
+        {
+            dbConn = new NpgsqlConnection(ConnectionString);
+            var cmd = dbConn.CreateCommand();
+            cmd.CommandText = @"
+            UPDATE PeriodCycle SET
+                start_date = @startDate,
+                end_date = @endDate,
+                notes = @notes
+            WHERE cycle_id = @cycleId AND user_id = @userId";
+
+            cmd.Parameters.AddWithValue("@startDate", NpgsqlDbType.Date, cycle.StartDate);
+            cmd.Parameters.AddWithValue("@endDate", NpgsqlDbType.Date, cycle.EndDate);
+            cmd.Parameters.AddWithValue("@notes", NpgsqlDbType.Text, (object)cycle.Notes ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@cycleId", NpgsqlDbType.Integer, cycle.CycleId);
+            cmd.Parameters.AddWithValue("@userId", NpgsqlDbType.Integer, cycle.UserId);
+
+            // Use the common UpdateData helper from BaseRepository
+            return UpdateData(dbConn, cmd);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PeriodCycleRepository] Error updating cycle: {ex.Message}");
             return false;
         }
         finally

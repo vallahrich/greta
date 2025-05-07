@@ -94,6 +94,45 @@ namespace PeriodTracker.API.Controllers
             );
         }
 
+        // PUT: api/periodcycle/{id}
+        // Updates an existing period cycle record with validation
+        [HttpPut("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public ActionResult<PeriodCycle> UpdateCycle(int id, [FromBody] PeriodCycle cycle)
+        {
+            // Get the authenticated user's ID from context
+            var authItem = HttpContext.Items["UserId"];
+            if (authItem == null)
+                return StatusCode(500, "Authentication context missing");
+
+            // Enforce that users can only update their own cycles
+            int authUserId = Convert.ToInt32(authItem);
+            if (authUserId != cycle.UserId)
+                return Forbid("You can only update your own cycles");
+
+            // Validate that the specified ID matches the cycle body
+            if (id != cycle.CycleId)
+                return BadRequest("Cycle ID in URL must match the ID in the request body");
+
+            // Ensure cycle exists
+            var existing = _periodCycleRepository.GetById(id);
+            if (existing == null)
+                return NotFound($"Period cycle with ID {id} not found");
+
+            // Validate date ordering
+            if (cycle.EndDate < cycle.StartDate)
+                return BadRequest("End date must be after start date");
+
+            // Add a UpdateCycle method to PeriodCycleRepository (code below)
+            if (!_periodCycleRepository.UpdateCycle(cycle))
+                return BadRequest("Failed to update period cycle");
+
+            return Ok(cycle);
+        }
+
         // DELETE: api/periodcycle/{id}/user/{userId}
         // Deletes a cycle and its symptoms, with ownership validation
         [HttpDelete("{id}/user/{userId}")]

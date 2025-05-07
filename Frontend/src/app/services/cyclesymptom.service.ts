@@ -4,9 +4,11 @@
  * This service:
  * - Fetches symptoms for a specific cycle
  * - Creates new symptom records for a cycle
+ * - Deletes symptoms from a cycle
  * 
  * It handles the many-to-many relationship between cycles and symptoms.
  */
+
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, throwError } from 'rxjs';
@@ -15,17 +17,11 @@ import { CycleSymptom, CreateCycleSymptomDto } from '../models/CycleSymptom';
 
 @Injectable({ providedIn: 'root' })
 export class CycleSymptomService {
-  // API endpoint URL
   private apiUrl = `${environment.apiUrl}/CycleSymptom`;
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * Creates a new cycle symptom record
-   * 
-   * @param dto Data transfer object with cycle symptom data
-   * @returns Observable of the created cycle symptom
-   */
+  // Sends a POST to create a new CycleSymptom record
   createCycleSymptom(dto: CreateCycleSymptomDto): Observable<CycleSymptom> {
     return this.http.post<CycleSymptom>(this.apiUrl, dto).pipe(
       catchError(error => {
@@ -35,16 +31,21 @@ export class CycleSymptomService {
     );
   }
 
-  /**
-   * Gets all symptoms for a specific cycle
-   * 
-   * @param cycleId The ID of the cycle
-   * @returns Observable of CycleSymptom array
-   */
+  // Retrieves all CycleSymptom entries for a given cycle ID
   getCycleSymptomsByCycleId(cycleId: number): Observable<CycleSymptom[]> {
     return this.http.get<CycleSymptom[]>(`${this.apiUrl}/cycle/${cycleId}`).pipe(
       catchError(error => {
         console.error('Error fetching cycle symptoms:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+  
+  // Deletes a single CycleSymptom by its ID
+  deleteCycleSymptom(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${id}`).pipe(
+      catchError(error => {
+        console.error('Error deleting cycle symptom:', error);
         return throwError(() => error);
       })
     );
