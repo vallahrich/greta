@@ -31,6 +31,18 @@ export class CycleSymptomService {
     );
   }
 
+  updateCycleSymptom(cycleSymptom: CycleSymptom): Observable<CycleSymptom> {
+    return this.http.put<CycleSymptom>(
+      `${this.apiUrl}/${cycleSymptom.cycleSymptomId}`, 
+      cycleSymptom
+    ).pipe(
+      catchError(error => {
+        console.error('Error updating cycle symptom:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
   // Retrieves all CycleSymptom entries for a given cycle ID
   getCycleSymptomsByCycleId(cycleId: number): Observable<CycleSymptom[]> {
     return this.http.get<CycleSymptom[]>(`${this.apiUrl}/cycle/${cycleId}`).pipe(
@@ -42,6 +54,15 @@ export class CycleSymptomService {
   }
   
   // Deletes a single CycleSymptom by its ID
+  deleteCycleSymptomsByCycleId(cycleId: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/cycle/${cycleId}`).pipe(
+      catchError(error => {
+        console.error('Error deleting cycle symptoms:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
   deleteCycleSymptom(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`).pipe(
       catchError(error => {

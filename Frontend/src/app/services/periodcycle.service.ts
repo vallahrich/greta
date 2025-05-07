@@ -41,8 +41,10 @@ export class PeriodCycleService {
     const adaptedCycle = {
       cycleId: cycle.cycleId,
       userId: cycle.userId,
-      startDate: cycle.startDate instanceof Date ? cycle.startDate.toISOString() : cycle.startDate,
-      endDate: cycle.endDate instanceof Date ? cycle.endDate.toISOString() : cycle.endDate,
+      startDate: cycle.startDate instanceof Date ? 
+        cycle.startDate.toISOString().split('T')[0] : cycle.startDate,
+      endDate: cycle.endDate instanceof Date ? 
+        cycle.endDate.toISOString().split('T')[0] : cycle.endDate,
       notes: cycle.notes || null
     };
     
@@ -62,8 +64,10 @@ export class PeriodCycleService {
     const adaptedCycle = {
       cycleId: cycle.cycleId,
       userId: cycle.userId,
-      startDate: cycle.startDate instanceof Date ? cycle.startDate.toISOString() : cycle.startDate,
-      endDate: cycle.endDate instanceof Date ? cycle.endDate.toISOString() : cycle.endDate,
+      startDate: cycle.startDate instanceof Date ? 
+        cycle.startDate.toISOString().split('T')[0] : cycle.startDate,
+      endDate: cycle.endDate instanceof Date ? 
+        cycle.endDate.toISOString().split('T')[0] : cycle.endDate,
       notes: cycle.notes || null
     };
     

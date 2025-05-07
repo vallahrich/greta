@@ -36,7 +36,7 @@ import { CycleSymptomService } from '../../services/cyclesymptom.service';
 
 import { Periodcycle } from '../../models/Periodcycle';
 import { Symptom } from '../../models/Symptom';
-import { CreateCycleSymptomDto } from '../../models/CycleSymptom';
+import { CreateCycleSymptomDto, CycleSymptom } from '../../models/CycleSymptom';
 import { NavFooterComponent } from '../shared/nav-footer.component';
 
 
@@ -305,43 +305,94 @@ export class CycleFormPageComponent implements OnInit {
    * 3. Then creates the new symptoms
    */
   private handleExistingSymptoms(cycleId: number, date: Date): void {
+    // Get selected symptoms from form
+    const selectedSymptoms = this.symptoms.controls
+      .map(c => c.value)
+      .filter((c: any) => c.selected)
+      .map((c: any) => ({
+        symptomId: c.symptomId,
+        intensity: c.intensity
+      }));
+  
     // First get all existing symptoms
     this.cycleSymptomService.getCycleSymptomsByCycleId(cycleId).subscribe({
       next: existingSymptoms => {
-        if (existingSymptoms.length === 0) {
-          // No existing symptoms, just save the new ones
-          this.saveSymptoms(cycleId, date);
+        // Track operations for completion
+        let totalOperations = 0;
+        let completedOperations = 0;
+        const updateQueue: CycleSymptom[] = [];
+        const createQueue: CreateCycleSymptomDto[] = [];
+        
+        // Find symptoms to update (exist in DB and are still selected)
+        selectedSymptoms.forEach(selected => {
+          const existing = existingSymptoms.find(e => e.symptomId === selected.symptomId);
+          
+          if (existing) {
+            // Update intensity if changed
+            if (existing.intensity !== selected.intensity) {
+              updateQueue.push({
+                ...existing,
+                intensity: selected.intensity
+              });
+            }
+          } else {
+            // This is a new symptom, add to create queue
+            createQueue.push({
+              cycleId,
+              symptomId: selected.symptomId,
+              intensity: selected.intensity,
+              date: date.toISOString().split('T')[0] // Fix for date issue
+            });
+          }
+        });
+        
+        // Find symptoms to delete (in DB but not selected anymore)
+        const deleteQueue = existingSymptoms.filter(existing => 
+          !selectedSymptoms.some(s => s.symptomId === existing.symptomId)
+        );
+  
+        // Calculate total operations
+        totalOperations = updateQueue.length + createQueue.length + deleteQueue.length;
+        
+        // If no operations needed, we're done
+        if (totalOperations === 0) {
+          this.finishSave();
           return;
         }
-
-        // Track how many symptoms have been deleted
-        let deletedCount = 0;
-        const totalToDelete = existingSymptoms.length;
-
-        // Delete each existing symptom
-        existingSymptoms.forEach(symptom => {
+  
+        // Process updates
+        updateQueue.forEach(symptom => {
+          this.cycleSymptomService.updateCycleSymptom(symptom).subscribe({
+            next: () => {
+              if (++completedOperations === totalOperations) this.finishSave();
+            },
+            error: err => this.handleError('Error updating symptom', err)
+          });
+        });
+  
+        // Process creates
+        createQueue.forEach(dto => {
+          this.cycleSymptomService.createCycleSymptom(dto).subscribe({
+            next: () => {
+              if (++completedOperations === totalOperations) this.finishSave();
+            },
+            error: err => this.handleError('Error creating symptom', err)
+          });
+        });
+  
+        // Process deletes
+        deleteQueue.forEach(symptom => {
           this.cycleSymptomService.deleteCycleSymptom(symptom.cycleSymptomId).subscribe({
             next: () => {
-              deletedCount++;
-              // Once all are deleted, save the new ones
-              if (deletedCount === totalToDelete) {
-                this.saveSymptoms(cycleId, date);
-              }
+              if (++completedOperations === totalOperations) this.finishSave();
             },
-            error: err => {
-              console.error(`Error deleting symptom ${symptom.cycleSymptomId}:`, err);
-              deletedCount++;
-              // Continue with saving new symptoms even if deletion fails
-              if (deletedCount === totalToDelete) {
-                this.saveSymptoms(cycleId, date);
-              }
-            }
+            error: err => this.handleError('Error deleting symptom', err)
           });
         });
       },
       error: err => {
-        // If fetching existing symptoms fails, try to save new ones anyway
         console.error('Error fetching existing symptoms:', err);
+        // Fall back to creating all symptoms if we can't get existing ones
         this.saveSymptoms(cycleId, date);
       }
     });
