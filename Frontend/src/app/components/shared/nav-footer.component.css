@@ -1,0 +1,41 @@
+.page-nav {
+    display: flex;
+    justify-content: space-around;
+    background-color: white;
+    padding: 12px;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+  }
+  
+  .page-nav a {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+  }
+  
+  .page-nav a.active {
+    background-color: #ff9a9e;
+    color: white;
+    border-radius: 4px;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 600px) {
+    .page-nav {
+      padding: 8px;
+    }
+    
+    .page-nav a {
+      padding: 6px;
+    }
+    
+    .page-nav a mat-icon {
+      margin-right: 0;
+    }
+    
+    .page-nav a span {
+      display: none; /* Hide text on very small screens */
+    }
+  }

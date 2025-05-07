@@ -1,16 +1,13 @@
 /// <summary>
-/// Controller that exposes endpoints to retrieve available symptoms for users to select or report.
+/// SymptomController - Provides access to the catalog of available symptoms
+/// 
+/// Simple controller with a single endpoint:
+/// - GET /api/symptom: Returns the complete list of symptom definitions
+/// 
+/// This is a read-only lookup table controller that provides reference data 
+/// for the app's symptom tracking features. It doesn't require authentication
+/// since the symptom list is not user-specific.
 /// </summary>
-/// <remarks>
-/// Exposes the following API endpoint:
-/// - GET /api/symptom: Returns a complete list of defined symptoms (e.g., cramps, headache)
-/// 
-/// The controller provides the catalog of symptom definitions that users can select from
-/// when recording symptoms associated with their menstrual cycles.
-/// 
-/// This endpoint is designed to be accessible without authentication, providing public
-/// access to reference data used throughout the application.
-/// </remarks>
 
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,20 +17,23 @@ namespace PeriodTracker.API.Controllers
     [Route("api/[controller]")]
     public class SymptomController : ControllerBase
     {
+        // Repository for accessing symptom definitions
         private readonly SymptomRepository _symptomRepository;
 
+        // Constructor with dependency injection
         public SymptomController(SymptomRepository symptomRepository)
         {
             _symptomRepository = symptomRepository;
         }
 
         // GET: api/symptom
-        // Returns list of all defined symptoms (e.g. cramps, headache)
+        // Returns the complete list of symptoms users can track
+        // (e.g., cramps, headache, mood swings, etc.)
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<IEnumerable<Symptom>> GetAllSymptoms()
         {
-            // Fetch all symptom records from repository
+            // Simple passthrough to the repository - no complex logic needed here
             var symptoms = _symptomRepository.GetAllSymptoms();
             return Ok(symptoms);
         }

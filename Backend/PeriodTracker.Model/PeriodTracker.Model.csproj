@@ -1,3 +1,12 @@
+<!-- 
+  PeriodTracker.Model project file - Defines the data model project settings
+  
+  This file specifies:
+  - .NET 8.0 framework target
+  - Package dependencies for database access (Npgsql)
+  - Configuration library for reading connection strings
+  - Disables nullable reference types for entities
+-->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -5,6 +14,7 @@
     <Nullable>disable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Dependencies for database access and configuration -->
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.3" />
     <PackageReference Include="NpgSql" Version="9.0.3" />
   </ItemGroup>

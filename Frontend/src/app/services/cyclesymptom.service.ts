@@ -1,8 +1,12 @@
 /**
- * Service to manage CRUD operations for CycleSymptom entities.
- * Communicates with the backend's /api/CycleSymptom endpoints.
+ * Cycle Symptom Service - Manages symptoms associated with cycles
+ * 
+ * This service:
+ * - Fetches symptoms for a specific cycle
+ * - Creates new symptom records for a cycle
+ * 
+ * It handles the many-to-many relationship between cycles and symptoms.
  */
-
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, throwError } from 'rxjs';
@@ -11,11 +15,17 @@ import { CycleSymptom, CreateCycleSymptomDto } from '../models/CycleSymptom';
 
 @Injectable({ providedIn: 'root' })
 export class CycleSymptomService {
+  // API endpoint URL
   private apiUrl = `${environment.apiUrl}/CycleSymptom`;
 
   constructor(private http: HttpClient) {}
 
-  //Sends a POST to create a new CycleSymptom record
+  /**
+   * Creates a new cycle symptom record
+   * 
+   * @param dto Data transfer object with cycle symptom data
+   * @returns Observable of the created cycle symptom
+   */
   createCycleSymptom(dto: CreateCycleSymptomDto): Observable<CycleSymptom> {
     return this.http.post<CycleSymptom>(this.apiUrl, dto).pipe(
       catchError(error => {
@@ -25,7 +35,12 @@ export class CycleSymptomService {
     );
   }
 
-  //Retrieves all CycleSymptom entries for a given cycle ID
+  /**
+   * Gets all symptoms for a specific cycle
+   * 
+   * @param cycleId The ID of the cycle
+   * @returns Observable of CycleSymptom array
+   */
   getCycleSymptomsByCycleId(cycleId: number): Observable<CycleSymptom[]> {
     return this.http.get<CycleSymptom[]>(`${this.apiUrl}/cycle/${cycleId}`).pipe(
       catchError(error => {

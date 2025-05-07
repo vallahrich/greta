@@ -1,12 +1,13 @@
 /**
- * User interface models a registered user in the PeriodTracker application.
- * Contains authentication and profile data needed by the frontend.
+ * User Model - Represents a user account
+ * 
+ * This interface defines the structure of user data throughout the application.
+ * It matches the C# User entity on the backend.
  */
-
 export interface User {
-    userId: number;
-    name: string;
-    email: string;
-    pw: string;
-    createdAt: Date;
+    userId: number;      // Primary key
+    name: string;        // Display name
+    email: string;       // Email address (also used for login)
+    pw: string;          // Password (should be handled securely)
+    createdAt: Date;     // Account creation timestamp
 }

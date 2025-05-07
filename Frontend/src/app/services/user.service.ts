@@ -1,45 +1,68 @@
 /**
- * UserService manages user profile CRUD operations and password changes.
- * Communicates with backend endpoints under /user.
+ * User Service - Manages user profile operations
+ * 
+ * This service handles:
+ * - Fetching user profile data
+ * - Updating user information
+ * - Changing passwords
+ * - Deleting user accounts
+ * 
+ * It communicates with the backend API's /user endpoints.
  */
-
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, catchError, tap, throwError } from 'rxjs';
 import { User } from '../models/User';
 import { environment } from '../environments/environment';
 
-//Request payload for updating a user's password
+// Interface for password update requests
 interface PasswordUpdateRequest {
-  UserId: number;
+  UserId: number;    // Uses Pascal case to match API expectations
   Password: string;
 }
 
-
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root'  // Singleton service available app-wide
 })
 export class UserService {
+  // Base URL for user endpoints
   private baseUrl = `${environment.apiUrl}/user`;
 
   constructor(private http: HttpClient) { }
 
-  //Get user by email
+  /**
+   * Gets user profile by email
+   * 
+   * @param email User's email address
+   * @returns Observable of User
+   */
   getUserByEmail(email: string): Observable<User> {
     return this.http.get<User>(`${this.baseUrl}/byemail/${email}`).pipe(
       catchError(this.handleError)
     );
   }
 
-  //Update user profile
+  /**
+   * Updates user profile information
+   * 
+   * @param user User object with updated data
+   * @returns Observable of the updated User
+   */
   updateUser(user: User): Observable<User> {
     return this.http.put<User>(`${this.baseUrl}`, user).pipe(
       catchError(this.handleError)
     );
   }
 
-  //Update user password
+  /**
+   * Updates user password
+   * 
+   * @param userId User's ID
+   * @param password New password
+   * @returns Observable of the HTTP response
+   */
   updatePassword(userId: number, password: string): Observable<any> {
+    // Format request to match API expectations
     const request: PasswordUpdateRequest = {
       UserId: userId,
       Password: password
@@ -52,6 +75,7 @@ export class UserService {
       catchError(error => {
         console.error('Error updating password:', error);
 
+        // Provide user-friendly error messages based on status code
         if (error.status === 403) {
           return throwError(() => new Error('You do not have permission to update this password.'));
         } else if (error.status === 404) {
@@ -65,7 +89,12 @@ export class UserService {
     );
   }
 
-  // Delete a user account
+  /**
+   * Deletes a user account
+   * 
+   * @param id User's ID to delete
+   * @returns Observable of the HTTP response
+   */
   deleteUser(id: number): Observable<any> {
     console.log(`Deleting user with ID: ${id}`);
 
@@ -74,6 +103,7 @@ export class UserService {
       catchError(error => {
         console.error('Error deleting user:', error);
 
+        // Provide user-friendly error messages based on status code
         if (error.status === 403) {
           return throwError(() => new Error('You do not have permission to delete this account.'));
         } else if (error.status === 404) {
@@ -85,7 +115,12 @@ export class UserService {
     );
   }
 
-  // Generic error handler that doesn't auto-logout
+  /**
+   * Generic error handler
+   * 
+   * @param error HTTP error from the API
+   * @returns Observable error with user-friendly message
+   */
   private handleError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = 'An error occurred';
 
@@ -93,10 +128,10 @@ export class UserService {
       // Client-side error
       errorMessage = `Error: ${error.error.message}`;
     } else {
-      // Server-side error
+      // Server-side error with status code
       errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`;
 
-      // Add more context based on specific status codes
+      // Add context based on status codes
       if (error.status === 404) {
         errorMessage = 'The requested resource was not found';
       } else if (error.status === 403) {

@@ -1,17 +1,29 @@
+/// <summary>
+/// CycleSymptomRepository - Handles data access for CycleSymptom entities
+/// 
+/// This repository manages:
+/// - Retrieving symptoms by ID or cycle ID
+/// - Creating new symptom records for a cycle
+/// - Updating existing symptom records
+/// - Deleting symptom records (individually or all for a cycle)
+/// 
+/// It implements the many-to-many relationship between cycles and symptoms.
+/// </summary>
+
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 using NpgsqlTypes;
 
 
-// Repository for CRUD operations on CycleSymptom entities
+// Repository for symptom tracking within cycles
 public class CycleSymptomRepository : BaseRepository
 {
-    // Inherit connection setup from BaseRepository
+    // Constructor inherits connection setup from BaseRepository
     public CycleSymptomRepository(IConfiguration configuration) : base(configuration)
     {
     }
 
-    // Retrieves a single CycleSymptom by its ID
+    // Retrieves a specific cycle-symptom record by ID
     public CycleSymptom GetById(int id)
     {
         NpgsqlConnection dbConn = null;
@@ -22,10 +34,11 @@ public class CycleSymptomRepository : BaseRepository
             cmd.CommandText = "SELECT * FROM CycleSymptoms WHERE cycle_symptom_id = @id";
             cmd.Parameters.Add("@id", NpgsqlDbType.Integer).Value = id;
 
-            // Execute reader and map first row to entity
+            // Execute query and map result
             var data = GetData(dbConn, cmd);
             if (data.Read())
             {
+                // Map database row to CycleSymptom entity
                 return new CycleSymptom
                 {
                     CycleSymptomId = Convert.ToInt32(data["cycle_symptom_id"]),
@@ -36,7 +49,7 @@ public class CycleSymptomRepository : BaseRepository
                     CreatedAt      = Convert.ToDateTime(data["created_at"])
                 };
             }
-            return null;
+            return null; // No record found
         }
         finally
         {
@@ -45,7 +58,7 @@ public class CycleSymptomRepository : BaseRepository
         }
     }
 
-    // Retrieves all symptoms for a specific cycle
+    // Retrieves all symptoms for a specific cycle, joined with symptom details
     public List<CycleSymptom> GetSymptomsByCycleId(int cycleId)
     {
         NpgsqlConnection dbConn = null;
@@ -54,6 +67,7 @@ public class CycleSymptomRepository : BaseRepository
         {
             dbConn = new NpgsqlConnection(ConnectionString);
             var cmd = dbConn.CreateCommand();
+            // Join with Symptoms table to get symptom names
             cmd.CommandText = @"
                 SELECT cs.*, s.name, s.icon 
                 FROM CycleSymptoms cs
@@ -62,10 +76,11 @@ public class CycleSymptomRepository : BaseRepository
                 ORDER BY cs.date";
             cmd.Parameters.AddWithValue("@cycleId", NpgsqlDbType.Integer, cycleId);
 
-            // Iterate all rows and map to CycleSymptom with nested Symptom
+            // Execute query and map results
             var data = GetData(dbConn, cmd);
             while (data.Read())
             {
+                // Create CycleSymptom with nested Symptom object
                 symptoms.Add(new CycleSymptom
                 {
                     CycleSymptomId = Convert.ToInt32(data["cycle_symptom_id"]),
@@ -88,7 +103,7 @@ public class CycleSymptomRepository : BaseRepository
         }
     }
 
-    // Inserts a new CycleSymptom and sets its generated ID
+    // Creates a new symptom record for a cycle
     public bool InsertCycleSymptom(CycleSymptom cycleSymptom)
     {
         NpgsqlConnection dbConn = null;
@@ -106,7 +121,7 @@ public class CycleSymptomRepository : BaseRepository
             cmd.Parameters.AddWithValue("@date", NpgsqlDbType.Date, cycleSymptom.Date);
 
             dbConn.Open();
-            // Retrieve the generated ID and assign back
+            // Execute and get the generated ID
             cycleSymptom.CycleSymptomId = Convert.ToInt32(cmd.ExecuteScalar());
             return true;
         }
@@ -120,7 +135,7 @@ public class CycleSymptomRepository : BaseRepository
         }
     }
 
-    // Updates intensity or date of an existing CycleSymptom
+    // Updates an existing symptom record (intensity or date)
     public bool UpdateCycleSymptom(CycleSymptom cycleSymptom)
     {
         NpgsqlConnection dbConn = null;
@@ -144,7 +159,7 @@ public class CycleSymptomRepository : BaseRepository
         }
     }
 
-    // Deletes a single CycleSymptom by ID
+    // Deletes a single symptom record
     public bool DeleteCycleSymptom(int id)
     {
         NpgsqlConnection dbConn = null;
@@ -163,7 +178,7 @@ public class CycleSymptomRepository : BaseRepository
         }
     }
 
-    // Deletes all CycleSymptom entries for a given cycle
+    // Deletes all symptoms for a cycle (used when deleting a cycle)
     public bool DeleteCycleSymptomsByCycleId(int cycleId)
     {
         NpgsqlConnection dbConn = null;
@@ -178,6 +193,7 @@ public class CycleSymptomRepository : BaseRepository
         }
         catch (Exception ex)
         {
+            // Log error
             Console.WriteLine($"Error deleting cycle symptoms for cycle {cycleId}: {ex.Message}");
             return false;
         }

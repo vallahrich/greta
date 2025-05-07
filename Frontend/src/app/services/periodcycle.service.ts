@@ -1,8 +1,13 @@
 /**
- * PeriodCycleService handles CRUD operations for user cycles.
- * Communicates with backend endpoints under /periodcycle.
+ * Period Cycle Service - Manages period cycle data with the API
+ *
+ * This service handles all operations related to period cycles:
+ * - Fetching cycles for a user
+ * - Creating new cycle records
+ * - Deleting cycles
+ * 
+ * It communicates with the backend API's /periodcycle endpoints.
  */
-
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, catchError, throwError } from 'rxjs';
@@ -10,14 +15,20 @@ import { environment } from '../environments/environment';
 import { Periodcycle } from '../models/Periodcycle';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root'  // Singleton service available app-wide
 })
 export class PeriodCycleService {
+  // Base URL for period cycle endpoints
   private apiUrl = `${environment.apiUrl}/periodcycle`;
   
   constructor(private http: HttpClient) {}
   
-  //Retrieves all period cycles belonging to a specific user
+  /**
+   * Gets all cycles for a specific user
+   * 
+   * @param userId The ID of the user whose cycles to fetch
+   * @returns Observable of Periodcycle array
+   */
   getCyclesByUserId(userId: number): Observable<Periodcycle[]> {
     return this.http.get<Periodcycle[]>(`${this.apiUrl}/user/${userId}`).pipe(
       catchError(error => {
@@ -26,11 +37,15 @@ export class PeriodCycleService {
       })
     );
   }
-   /**
-   * Creates a new period cycle record in the backend.
-   * Adapts Date fields to ISO strings for transmission.
+
+  /**
+   * Creates a new period cycle record
+   * 
+   * @param cycle The cycle data to save
+   * @returns Observable of the created cycle
    */
   createCycle(cycle: Periodcycle): Observable<Periodcycle> {
+    // Format dates for API (convert from Date objects to ISO strings)
     const adaptedCycle = {
       cycleId: cycle.cycleId,
       userId: cycle.userId,
@@ -47,7 +62,13 @@ export class PeriodCycleService {
     );
   }
   
-  //Deletes a period cycle for a given user
+  /**
+   * Deletes a period cycle
+   * 
+   * @param id The ID of the cycle to delete
+   * @param userId The ID of the user who owns the cycle
+   * @returns Observable of the HTTP response
+   */
   deleteCycle(id: number, userId: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}/user/${userId}`).pipe(
       catchError(error => {

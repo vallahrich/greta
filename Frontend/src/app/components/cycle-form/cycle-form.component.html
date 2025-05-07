@@ -110,17 +110,7 @@
   </div>
 
   <!-- Navigation Footer -->
-  <nav class="form-nav">
-    <a mat-raised-button routerLink="/dashboard">
-      <mat-icon>home</mat-icon> Dashboard
-    </a>
-    <a mat-raised-button routerLink="/calendar">
-      <mat-icon>calendar_today</mat-icon> Calendar
-    </a>
-    <a mat-raised-button color="primary" [routerLink]="isEditMode ? ['/calendar'] : null" class="active">
-      <mat-icon>{{ isEditMode ? 'edit' : 'add' }}</mat-icon> {{ isEditMode ? 'Edit Cycle' : 'Add Cycle' }}
-    </a>
-  </nav>
+  <app-nav-footer activeRoute="add-cycle"></app-nav-footer>
 </div>
 
 <!-- Delete confirmation dialog -->

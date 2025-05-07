@@ -1,3 +1,14 @@
+/**
+ * Login Component - Handles user authentication UI
+ * 
+ * This component provides:
+ * - Login form with validation
+ * - Registration form with validation
+ * - Toggle between login and registration modes
+ * - Error handling and feedback
+ * 
+ * It's the entry point for users to access the application.
+ */
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -10,35 +21,34 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HttpErrorResponse } from '@angular/common/http';
-
 import { AuthService } from '../../services/auth.service';
-import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-login-page',
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css'],
-  standalone: true,
+  standalone: true,  // Angular 17+ standalone component
   imports: [
     CommonModule,
     ReactiveFormsModule,
     RouterModule,
+    // Material UI modules
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
     MatProgressSpinnerModule,
     MatIconModule,
-    MatSnackBarModule
+    MatSnackBarModule,
   ]
 })
 export class LoginPageComponent implements OnInit {
-  loginForm!: FormGroup;
-  registerForm!: FormGroup;
-  isLoading = false;
-  errorMessage = '';
-  hidePassword = true;
-  isLoginMode = true;
+  loginForm!: FormGroup;      // Form for login mode
+  registerForm!: FormGroup;   // Form for registration mode
+  isLoading = false;          // Controls spinner visibility
+  errorMessage = '';          // Displays error messages to user
+  hidePassword = true;        // Toggle for password visibility
+  isLoginMode = true;         // Toggle between login/register modes
 
   constructor(
     private formBuilder: FormBuilder,
@@ -48,18 +58,18 @@ export class LoginPageComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    // Check if already authenticated
+    // If already authenticated, redirect to home
     if (this.authService.isAuthenticated()) { 
       this.router.navigate(['/']);
     }
 
-    // Initialize login form
+    // Initialize login form with validators
     this.loginForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
 
-    // Initialize register form
+    // Initialize register form with validators
     this.registerForm = this.formBuilder.group({
       name: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
@@ -67,14 +77,19 @@ export class LoginPageComponent implements OnInit {
     });
   }
 
-  // Toggle between login and register forms
+  /**
+   * Toggles between login and register forms
+   */
   toggleFormMode(): void {
     this.isLoginMode = !this.isLoginMode;
-    this.errorMessage = '';
+    this.errorMessage = ''; // Clear any previous errors
   }
 
-  /** Submit login; call AuthService and navigate on success */
+  /**
+   * Handles login form submission
+   */
   onLoginSubmit(): void {
+    // Skip if form is invalid
     if (this.loginForm.invalid) { 
       return; 
     }
@@ -85,17 +100,18 @@ export class LoginPageComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
 
+    // Call auth service to perform login
     this.authService.login(email, password).subscribe({
       next: (response: any) => {
         console.log('Login successful, token received:', response.token);
         this.isLoading = false;
-        this.router.navigate(['/dashboard']);
+        this.router.navigate(['/dashboard']); // Redirect on success
       },
       error: (error: HttpErrorResponse) => {
         console.error('Login error details:', error);
         this.isLoading = false;
         
-        // Improved error messaging
+        // Show user-friendly error message based on status code
         if (error.status === 401) {
           this.errorMessage = 'Invalid credentials. Please check your email and password.';
         } else if (error.status === 0) {
@@ -107,7 +123,9 @@ export class LoginPageComponent implements OnInit {
     });
   }
 
-  /** Submit registration; call AuthService and switch to login on success */
+  /**
+   * Handles register form submission
+   */
   onRegisterSubmit(): void {
     if (this.registerForm.invalid) {
       return;
@@ -116,30 +134,31 @@ export class LoginPageComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
 
-    // Create register request object
+    // Create registration data object from form
     const registerData = {
       name: this.registerForm.value.name,
       email: this.registerForm.value.email,
       password: this.registerForm.value.password
     };
 
-    // Use AuthService to register
+    // Call auth service to perform registration
     this.authService.register(registerData).subscribe({
       next: (response: any) => {
         this.isLoading = false;
+        // Show success message
         this.snackBar.open('Registration successful! Please login.', 'Close', {
           duration: 3000
         });
         this.isLoginMode = true; // Switch to login form
 
-        // Pre-fill the login form with the email
+        // Pre-fill the login form with the registered email
         this.loginForm.patchValue({
           email: registerData.email
         });
       },
       error: (error: HttpErrorResponse) => {
         this.isLoading = false;
-        // Handle conflict (409) vs general errors
+        // Handle specific error cases
         if (error.status === 409) {
           this.errorMessage = 'Email already exists. Please use a different email.';
         } else {
@@ -150,7 +169,7 @@ export class LoginPageComponent implements OnInit {
     });
   }
 
-  // Convenience getters for form fields
+  // Convenience getters for form fields (used in template)
   get email() { return this.loginForm.get('email'); }
   get password() { return this.loginForm.get('password'); }
 }

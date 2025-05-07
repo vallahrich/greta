@@ -1,5 +1,12 @@
-//SymptomService fetches the list of available symptoms from the backend
-
+/**
+ * Symptom Service - Provides access to symptom definitions
+ * 
+ * This service retrieves the catalog of available symptoms that users
+ * can select when tracking period symptoms.
+ * 
+ * It's a relatively simple service since symptoms are essentially
+ * reference data that doesn't change often.
+ */
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, catchError, throwError } from 'rxjs';
@@ -7,13 +14,19 @@ import { environment } from '../environments/environment';
 import { Symptom } from '../models/Symptom';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root'  // Singleton service available app-wide
 })
 export class SymptomService {
+  // API endpoint URL
   private apiUrl = `${environment.apiUrl}/symptom`;
   
   constructor(private http: HttpClient) { }
   
+  /**
+   * Gets the complete list of available symptoms
+   * 
+   * @returns Observable of Symptom array
+   */
   getAllSymptoms(): Observable<Symptom[]> {
     return this.http.get<Symptom[]>(this.apiUrl).pipe(
       catchError(error => {

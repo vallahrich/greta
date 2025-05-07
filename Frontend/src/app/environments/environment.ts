@@ -1,12 +1,18 @@
 /**
- * Holds configuration values for the Angular application:
- * - Enables developer optimizations when production is false
- * - Points to the local API endpoint for backend integration.
+ * Environment Configuration
+ * 
+ * This file contains environment-specific settings for the application.
+ * In a production app, we would have separate files for dev/prod/staging.
+ * 
+ * Currently it defines:
+ * - production flag (false for development)
+ * - API URL for backend communication
  */
 
 export const environment = {
-    production: false,
-    apiUrl: 'http://localhost:5113/api'
-  };
-
+  // Set to false for development mode
+  production: false,
   
+  // Base URL for the backend API (local development server)
+  apiUrl: 'http://localhost:5113/api'
+};

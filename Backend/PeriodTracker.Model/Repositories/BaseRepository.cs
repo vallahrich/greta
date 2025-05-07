@@ -1,54 +1,68 @@
+/// <summary>
+/// BaseRepository - Abstract base class for database access
+/// 
+/// This class provides common database operations for all repositories:
+/// - Establishing database connections
+/// - Executing queries and commands
+/// - Handling basic CRUD operations
+/// 
+/// All specific repositories inherit from this class to share connection 
+/// handling and common database operation patterns.
+/// </summary>
+
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 
-// Base class for database repositories, provides common DB operations
+// Base class that all repositories inherit from
 public class BaseRepository
 {
-    // Holds the PostgreSQL connection string
+    // Protected property accessible to derived classes
     protected string ConnectionString { get; }
     
-    // Constructor reads the connection string from configuration
+    // Constructor reads the connection string from app configuration
     public BaseRepository(IConfiguration configuration)
     {
         var connString = configuration.GetConnectionString("gretaDB");
         if (string.IsNullOrEmpty(connString))
         {
-            // Fail early if configuration is missing
+            // Fail fast if the connection string is missing
             throw new InvalidOperationException("Database connection string is not configured.");
         }
         ConnectionString = connString;
     }
     
-    // Executes a query command and returns a data reader (caller must dispose)
+    // Executes a SQL SELECT query and returns a DataReader
+    // Note: Caller must dispose the connection when done with the reader
     protected NpgsqlDataReader GetData(NpgsqlConnection conn, NpgsqlCommand cmd)
     {
-        conn.Open();                 // Open DB connection
-        return cmd.ExecuteReader();  // Execute query and return results
+        conn.Open();            // Open the connection
+        return cmd.ExecuteReader(); // Execute and return results
     }
     
-    // Executes an INSERT command, returns true on success, false on error
+    // Executes an INSERT command
     protected bool InsertData(NpgsqlConnection conn, NpgsqlCommand cmd)
     {
         try
         {
-            conn.Open();             // Open DB connection
-            cmd.ExecuteNonQuery();   // Perform insert
-            return true;
+            conn.Open();
+            cmd.ExecuteNonQuery(); // Run the command
+            return true;           // Success
         }
         catch
         {
-            // Suppress exception and return failure flag
+            // Swallow exception and return failure
+            // In a real app, we might want to log this or handle it differently
             return false;
         }
     }
     
-    // Executes an UPDATE command, returns true on success, false on error
+    // Executes an UPDATE command
     protected bool UpdateData(NpgsqlConnection conn, NpgsqlCommand cmd)
     {
         try
         {
-            conn.Open();             // Open DB connection
-            cmd.ExecuteNonQuery();   // Perform update
+            conn.Open();
+            cmd.ExecuteNonQuery();
             return true;
         }
         catch
@@ -57,13 +71,13 @@ public class BaseRepository
         }
     }
     
-    // Executes a DELETE command, returns true on success, false on error
+    // Executes a DELETE command
     protected bool DeleteData(NpgsqlConnection conn, NpgsqlCommand cmd)
     {
         try
         {
-            conn.Open();             // Open DB connection
-            cmd.ExecuteNonQuery();   // Perform delete
+            conn.Open();
+            cmd.ExecuteNonQuery();
             return true;
         }
         catch

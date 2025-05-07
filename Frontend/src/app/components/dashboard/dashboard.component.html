@@ -105,7 +105,7 @@
               </div>
 
               <!-- symptoms with intensity -->
-              @if (cycle.symptoms?.length) {
+              @if (cycle.symptoms.length) {
                 <mat-card-content>
                   <div class="symptoms-section">
                     <h4 class="symptoms-header">Symptoms:</h4>
@@ -148,15 +148,5 @@
   </main>
 
   <!-- Navigation Footer -->
-  <nav class="page-nav">
-    <a mat-raised-button color="primary" routerLink="/dashboard" class="active">
-      <mat-icon>home</mat-icon> Dashboard
-    </a>
-    <a mat-raised-button routerLink="/calendar">
-      <mat-icon>calendar_today</mat-icon> Calendar
-    </a>
-    <a mat-raised-button routerLink="/cycle/add">
-      <mat-icon>add</mat-icon> Add Cycle
-    </a>
-  </nav>
+  <app-nav-footer activeRoute="dashboard"></app-nav-footer>
 </div>

@@ -1,20 +1,24 @@
+// app.component.ts
+/**
+ * Root Component - The main container for the PeriodTracker application
+ * 
+ * This component serves as the entry point for the application. It:
+ * - Hosts the router outlet where all page components are displayed
+ * - Provides the main layout container
+ * - Gets bootstrapped in main.ts as the application root
+ */
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterModule } from '@angular/router';
 
-/**
- * Root component for the PeriodTracker Angular application.
- * - Bootstrapped in main.ts
- * - Hosts the <router-outlet> for displaying routed views
- */
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterModule],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  selector: 'app-root', // The HTML element that hosts this component
+  standalone: true, // Angular 17+ standalone component (no NgModule needed)
+  imports: [CommonModule, RouterOutlet, RouterModule], // Required dependencies
+  templateUrl: './app.component.html', // HTML template
+  styleUrl: './app.component.css' // CSS styles
 })
 export class AppComponent {
-  //Application title used in the main layout or header
+  // Application title - could be used in headers, browser title, etc.
   title = 'FlowelleAng'; 
 }

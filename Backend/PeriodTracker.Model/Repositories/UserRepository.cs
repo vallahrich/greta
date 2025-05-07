@@ -1,27 +1,43 @@
+/// <summary>
+/// UserRepository - Handles data access for User entities
+/// 
+/// This repository manages:
+/// - Retrieving users by ID or email
+/// - Creating new user accounts
+/// - Updating user profiles and passwords
+/// - Deleting user accounts
+/// - Checking for duplicate emails
+/// 
+/// It communicates directly with the PostgreSQL database using Npgsql.
+/// </summary>
+
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 using NpgsqlTypes;
 using PeriodTracker.Model.Entities;
 
-// Repository handling CRUD operations for User entities
+// Repository for User entity database operations
 public class UserRepository : BaseRepository
 {
-    // Passes configuration to BaseRepository to set up the database connection string
+    // Constructor inherits connection setup from BaseRepository
     public UserRepository(IConfiguration configuration) : base(configuration)
     {
     }
 
-    // Retrieves a user by their unique ID or returns null if not found
+    // Retrieves a user by their unique ID
     public User GetUserById(int id)
     {
+        // Using statement ensures proper disposal of resources
         using var conn = new NpgsqlConnection(ConnectionString);
         using var cmd  = conn.CreateCommand();
         cmd.CommandText = "SELECT * FROM Users WHERE user_id = @id";
         cmd.Parameters.AddWithValue("@id", NpgsqlDbType.Integer, id);
 
+        // Execute query and map results
         using var reader = GetData(conn, cmd);
         if (reader.Read())
         {
+            // Map database row to User entity
             return new User(Convert.ToInt32(reader["user_id"]))
             {
                 Name      = reader["name"].ToString(),
@@ -30,10 +46,10 @@ public class UserRepository : BaseRepository
                 CreatedAt = Convert.ToDateTime(reader["created_at"])
             };
         }
-        return null;
+        return null; // No user found
     }
 
-    // Retrieves a user by email; throws on DB error to let controllers handle
+    // Retrieves a user by their email address (used for login)
     public User GetUserByEmail(string email)
     {
         using var conn = new NpgsqlConnection(ConnectionString);
@@ -55,7 +71,7 @@ public class UserRepository : BaseRepository
         return null;
     }
 
-    // Inserts a new user, sets its generated ID, and returns success flag
+    // Creates a new user and returns the generated ID
     public bool InsertUser(User user)
     {
         using var conn = new NpgsqlConnection(ConnectionString);
@@ -65,6 +81,7 @@ public class UserRepository : BaseRepository
             VALUES (@name, @email, @pw, @createdAt)
             RETURNING user_id";
 
+        // Add parameters to prevent SQL injection
         cmd.Parameters.AddWithValue("@name", NpgsqlDbType.Varchar, user.Name);
         cmd.Parameters.AddWithValue("@email", NpgsqlDbType.Varchar, user.Email);
         cmd.Parameters.AddWithValue("@pw", NpgsqlDbType.Varchar, user.Pw);
@@ -73,18 +90,19 @@ public class UserRepository : BaseRepository
         try
         {
             conn.Open();
+            // Execute and get the generated ID
             user.UserId = Convert.ToInt32(cmd.ExecuteScalar());
             return true;
         }
         catch (Exception ex)
         {
-            // TODO: Inject ILogger<UserRepository> to log errors
+            // Log error - in a real app, use a proper logging framework
             Console.WriteLine($"[UserRepository] Error inserting user: {ex.Message}");
             return false;
         }
     }
 
-    // Updates user name and email; returns success
+    // Updates user name and email
     public bool UpdateUser(User user)
     {
         using var conn = new NpgsqlConnection(ConnectionString);
@@ -102,7 +120,7 @@ public class UserRepository : BaseRepository
         return UpdateData(conn, cmd);
     }
 
-    // Updates only the user’s password
+    // Updates only the user's password
     public bool UpdateUserPassword(int userId, string password)
     {
         using var conn = new NpgsqlConnection(ConnectionString);
@@ -139,6 +157,6 @@ public class UserRepository : BaseRepository
 
         conn.Open();
         var count = Convert.ToInt32(cmd.ExecuteScalar());
-        return count > 0;
+        return count > 0; // True if email exists
     }
 }

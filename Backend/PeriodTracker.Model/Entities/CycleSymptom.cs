@@ -1,9 +1,17 @@
+/// <summary>
+/// CycleSymptom.cs - Maps symptoms to period cycles
+/// 
+/// This is a join entity that connects PeriodCycle and Symptom entities,
+/// recording when a user experienced a specific symptom during a cycle,
+/// along with its intensity.
+/// </summary>
+
 using System.Text.Json.Serialization;
 
-// Represents a symptom entry tied to a specific menstrual cycle
+// Represents a symptom recorded during a specific menstrual cycle
 public class CycleSymptom
 {
-    // Primary constructor for tests or manual instantiation with ID
+    // Constructor for when ID is known
     public CycleSymptom(int id)
     {
         CycleSymptomId = id;
@@ -13,22 +21,22 @@ public class CycleSymptom
     [JsonConstructor]
     public CycleSymptom() { }
 
-    // Primary key
+    // Primary key - uniquely identifies this symptom entry
     public int CycleSymptomId { get; set; }
 
-    // Foreign key: the associated cycle
+    // Foreign key to the associated cycle 
     public int CycleId { get; set; }
 
-    // Foreign key: the reported symptom type
+    // Foreign key to the symptom type
     public int SymptomId { get; set; }
 
-    // Intensity of the symptom (e.g., scale 1-5)
+    // Intensity rating (1-5 scale) of the symptom
     public int Intensity { get; set; }
 
-    // Date when the symptom was observed
+    // Date when the symptom was experienced
     public DateTime Date { get; set; }
 
-    // Timestamp when this entry was created (defaults to now)
+    // When this record was created
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     // Navigation property to the parent cycle

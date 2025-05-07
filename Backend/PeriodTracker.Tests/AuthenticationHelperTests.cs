@@ -1,43 +1,57 @@
-using PeriodTracker.API.Middleware;                   // Target class for testing
+/// <summary>
+/// AuthenticationHelperTests - Unit tests for the BasicAuth helper
+/// 
+/// These tests verify:
+/// - Encrypt correctly generates Basic auth headers from credentials
+/// - Decrypt correctly extracts credentials from Basic auth headers
+/// 
+/// This ensures the authentication mechanism works as expected.
+/// </summary>
+
+using PeriodTracker.API.Middleware;
 
 namespace PeriodTracker.API.Tests
 {
-    // Tests for the basic auth helper methods
     [TestClass]
     public class AuthenticationHelperTests
     {
-        // Verifies that Encrypt produces the expected Basic auth header
+        // Test that Encrypt produces the expected Basic auth header
         [TestMethod]
         public void Encrypt_ShouldReturnBasicToken()
         {
-            // Arrange: known credentials
+            // Arrange: Set up test credentials
             string username = "john.doe";
             string password = "VerySecret!";
+            // The expected result is "Basic " followed by base64 of "username:password" 
+            string expected = "Basic am9obi5kb2U6VmVyeVNlY3JldCE=";
 
-            // Act: generate header
-            var header = AuthenticationHelper.Encrypt(username, password);
+            // Act: Call the method under test
+            var actual = AuthenticationHelper.Encrypt(username, password);
 
-            // Assert: header matches expected Base64 encoding
-            Assert.AreEqual("Basic am9obi5kb2U6VmVyeVNlY3JldCE=", header);
+            // Assert: Verify the result matches expected value
+            Assert.AreEqual(expected, actual);
         }
 
-        // Verifies that Decrypt correctly parses the header back into credentials
+        // Test that Decrypt extracts username and password from a header
         [TestMethod]
         public void Decrypt_ShouldReturnUsernameAndPassword()
         {
-            // Arrange: a valid Basic auth header value
+            // Arrange: Set up a valid Basic auth header to test
             var inputHeader = "Basic am9obi5kb2U6VmVyeVNlY3JldCE=";
+            string expectedUsername = "john.doe";
+            string expectedPassword = "VerySecret!";
 
-            // Act: decrypt header
+            // Act: Call the decrypt method
+            // Note how the out parameters let us return two values
             AuthenticationHelper.Decrypt(
                 inputHeader,
-                out var user,
-                out var pass
+                out var actualUsername,
+                out var actualPassword
             );
 
-            // Assert: original username and password are recovered
-            Assert.AreEqual("john.doe", user);
-            Assert.AreEqual("VerySecret!", pass);
+            // Assert: Verify both values match expected
+            Assert.AreEqual(expectedUsername, actualUsername);
+            Assert.AreEqual(expectedPassword, actualPassword);
         }
     }
 }

@@ -102,15 +102,5 @@
   </div>
 
   <!-- Bottom navigation bar with primary routes -->
-  <nav class="page-nav">
-    <a mat-raised-button routerLink="/dashboard">
-      <mat-icon>home</mat-icon> Dashboard
-    </a>
-    <a mat-raised-button color="primary" routerLink="/calendar" class="active">
-      <mat-icon>calendar_today</mat-icon> Calendar
-    </a>
-    <a mat-raised-button routerLink="/cycle/add">
-      <mat-icon>add</mat-icon> Add Cycle
-    </a>
-  </nav>
+  <app-nav-footer activeRoute="calendar"></app-nav-footer>
 </div>

@@ -1,33 +1,42 @@
+/// <summary>
+/// User.cs - Represents a user account in the period tracking application
+/// 
+/// This entity class maps to the Users table in the database and stores
+/// essential user information including authentication credentials.
+/// </summary>
+
 using System.Text.Json.Serialization;
 
 namespace PeriodTracker.Model.Entities
 {
-    // Represents an application user account
+    // Represents a user account for the application
     public class User
     {
-        // Constructor for manual instantiation with known ID
+        // Constructor for when you know the user ID (e.g., from database)
         public User(int id)
         {
             UserId = id;
         }
         
-        // Parameterless constructor for JSON deserialization
+        // Parameterless constructor needed for JSON deserialization
         [JsonConstructor]
         public User() { }
 
-        // Primary key
+        // Primary key - uniquely identifies the user
         public int UserId { get; set; }
 
-        // Full name of the user
+        // User's display name
         public string Name { get; set; }
 
-        // Email address used as username/login
+        // Email address (also used as username for login)
         public string Email { get; set; }
 
-        // Password hash 
+        // Password - should be hashed in a production app
+        // Named Pw to match database column
         public string Pw { get; set; }
 
-        // Record creation timestamp 
+        // When the account was created
+        // Default to current time for new accounts
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

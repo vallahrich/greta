@@ -1,3 +1,13 @@
+<!-- 
+  PeriodTracker.API project file - Defines the API project settings
+  
+  This file specifies:
+  - .NET 8.0 framework target
+  - Package dependencies (Swashbuckle for Swagger/OpenAPI)
+  - Project references (PeriodTracker.Model for entities/repositories)
+  
+  Implicit usings are enabled to reduce boilerplate code.
+-->
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>

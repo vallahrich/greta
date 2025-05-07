@@ -1,16 +1,27 @@
+/// <summary>
+/// PeriodCycleRepository - Handles data access for PeriodCycle entities
+/// 
+/// This repository manages:
+/// - Retrieving cycles by ID or user ID
+/// - Creating new cycle records
+/// - Deleting cycle records with user ownership verification
+/// 
+/// It's central to the app's core functionality of tracking periods.
+/// </summary>
+
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 using NpgsqlTypes;
 
-// Repository for PeriodCycle: handles retrieval, insertion, and deletion of cycle records
+// Repository for period cycle database operations
 public class PeriodCycleRepository : BaseRepository
 {
-    // Constructor passes IConfiguration to BaseRepository to set up the connection string
+    // Constructor inherits connection setup from BaseRepository
     public PeriodCycleRepository(IConfiguration configuration) : base(configuration)
     {
     }
 
-    // Retrieves a PeriodCycle by its ID or returns null if not found
+    // Retrieves a specific cycle by ID
     public PeriodCycle GetById(int id)
     {
         NpgsqlConnection dbConn = null;
@@ -24,7 +35,7 @@ public class PeriodCycleRepository : BaseRepository
             var data = GetData(dbConn, cmd);
             if (data.Read())
             {
-                // Map database columns to PeriodCycle properties
+                // Map database row to PeriodCycle entity
                 return new PeriodCycle
                 {
                     CycleId   = Convert.ToInt32(data["cycle_id"]),
@@ -35,16 +46,16 @@ public class PeriodCycleRepository : BaseRepository
                     CreatedAt = Convert.ToDateTime(data["created_at"])
                 };
             }
-            return null;
+            return null; // No cycle found
         }
         finally
         {
-            // Ensure connection is closed after operation
+            // Ensure connection is closed even if an error occurs
             dbConn?.Close();
         }
     }
 
-    // Retrieves all PeriodCycle records for a given user, ordered by most recent start date
+    // Retrieves all cycles for a specific user
     public List<PeriodCycle> GetCyclesByUserId(int userId)
     {
         NpgsqlConnection dbConn = null;
@@ -59,7 +70,7 @@ public class PeriodCycleRepository : BaseRepository
             var data = GetData(dbConn, cmd);
             while (data.Read())
             {
-                // Build a new PeriodCycle for each row
+                // Add each cycle to the list
                 cycles.Add(new PeriodCycle
                 {
                     CycleId   = Convert.ToInt32(data["cycle_id"]),
@@ -74,12 +85,12 @@ public class PeriodCycleRepository : BaseRepository
         }
         finally
         {
-            // Close the connection to avoid leaks
+            // Always close the connection 
             dbConn?.Close();
         }
     }
 
-    // Inserts a new PeriodCycle record, sets its generated ID on the entity, and returns success status
+    // Creates a new cycle record
     public bool InsertCycle(PeriodCycle cycle)
     {
         NpgsqlConnection dbConn = null;
@@ -92,7 +103,7 @@ public class PeriodCycleRepository : BaseRepository
                 VALUES (@userId, @startDate, @endDate, @notes, @createdAt)
                 RETURNING cycle_id";
 
-            // Bind parameters from the PeriodCycle object
+            // Add parameters to prevent SQL injection
             cmd.Parameters.AddWithValue("@userId", NpgsqlDbType.Integer, cycle.UserId);
             cmd.Parameters.AddWithValue("@startDate", NpgsqlDbType.Date, cycle.StartDate);
             cmd.Parameters.AddWithValue("@endDate", NpgsqlDbType.Date, cycle.EndDate);
@@ -100,13 +111,13 @@ public class PeriodCycleRepository : BaseRepository
             cmd.Parameters.AddWithValue("@createdAt", NpgsqlDbType.TimestampTz, DateTime.UtcNow);
 
             dbConn.Open();
-            // Execute and capture the generated ID
+            // Execute and get the generated ID
             cycle.CycleId = Convert.ToInt32(cmd.ExecuteScalar());
             return true;
         }
         catch (Exception ex)
         {
-            // Log the error and return failure
+            // Log error
             Console.WriteLine($"[PeriodCycleRepository] Error inserting cycle: {ex.Message}");
             return false;
         }
@@ -116,7 +127,7 @@ public class PeriodCycleRepository : BaseRepository
         }
     }
 
-    // Deletes a PeriodCycle record if it belongs to the specified user
+    // Deletes a cycle record with owner verification
     public bool DeleteCycle(int id, int userId)
     {
         NpgsqlConnection dbConn = null;
@@ -124,11 +135,12 @@ public class PeriodCycleRepository : BaseRepository
         {
             dbConn = new NpgsqlConnection(ConnectionString);
             var cmd = dbConn.CreateCommand();
+            // Only delete if the cycle belongs to the specified user (security check)
             cmd.CommandText = "DELETE FROM PeriodCycle WHERE cycle_id = @id AND user_id = @userId";
             cmd.Parameters.AddWithValue("@id", NpgsqlDbType.Integer, id);
             cmd.Parameters.AddWithValue("@userId", NpgsqlDbType.Integer, userId);
 
-            // Use the common DeleteData helper from BaseRepository
+            // Use the common DeleteData helper
             return DeleteData(dbConn, cmd);
         }
         finally

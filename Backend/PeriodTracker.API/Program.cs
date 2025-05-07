@@ -1,75 +1,75 @@
 /// <summary>
-/// Program entry point and configuration for the PeriodTracker API.
-/// Sets up the ASP.NET Core application, configures services, and establishes the HTTP request pipeline.
-/// </summary>
-/// <remarks>
-/// Key configuration components:
-/// - Registers repository services using dependency injection with scoped lifetime
-/// - Configures JSON serialization with camelCase naming
-/// - Enables Swagger/OpenAPI documentation
-/// - Configures CORS for the Angular frontend (http://localhost:4200)
-/// - Sets up the HTTP request pipeline with appropriate middleware:
-///   - Swagger UI for API documentation (in Development environment only)
-///   - CORS middleware to handle cross-origin requests
-///   - Custom Basic Authentication middleware for securing API endpoints
-///   - Standard controller routing
+/// Program.cs - Entry point and configuration for PeriodTracker API
 /// 
-/// This configuration establishes a RESTful API for period tracking with
-/// authentication, documentation, and proper cross-origin resource sharing.
-/// </remarks>
+/// This file sets up the ASP.NET Core web application by:
+/// - Configuring services (repositories, controllers, CORS, Swagger)
+/// - Establishing the middleware pipeline (authentication, routing)
+/// - Registering controllers and API endpoints
+/// 
+/// The application follows a standard repository pattern with controllers
+/// that handle REST API endpoints for period tracking functionality.
+/// </summary>
 
 using PeriodTracker.API.Middleware;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure services
+// SECTION 1: CONFIGURE SERVICES
+// Register controllers with JSON serialization options
 builder.Services.AddControllers()
     .AddJsonOptions(opts =>
     {
-        // Use camelCase for JSON property names
+        // Use camelCase for JSON property names (JavaScript convention)
+        // This converts C# PascalCase to JavaScript camelCase
         opts.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
 
+// Register Swagger for API documentation
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register concrete repository implementations with scoped lifetime
+// Register repositories with scoped lifetime (one instance per request)
+// These provide data access for the controllers
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<SymptomRepository>();
 builder.Services.AddScoped<PeriodCycleRepository>();
 builder.Services.AddScoped<CycleSymptomRepository>();
 
-// Add CORS configuration
+// Configure CORS to allow requests from the Angular frontend
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularApp", policyBuilder =>
     {
         policyBuilder
-            .WithOrigins("http://localhost:4200")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials()
-            .WithExposedHeaders("Authorization");
+            .WithOrigins("http://localhost:4200") // Angular dev server URL
+            .AllowAnyHeader()                     // Allow all HTTP headers
+            .AllowAnyMethod()                     // Allow all HTTP methods (GET, POST, etc.)
+            .AllowCredentials()                   // Allow cookies and authentication
+            .WithExposedHeaders("Authorization"); // Expose auth header to client
     });
 });
 
+// SECTION 2: BUILD THE APP INSTANCE
 var app = builder.Build();
 
-// Development-only middleware
+// SECTION 3: CONFIGURE THE HTTP REQUEST PIPELINE
+// In development, enable Swagger UI
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// CRITICAL: CORS MUST come BEFORE authentication middleware
+// IMPORTANT: CORS middleware MUST come BEFORE authentication
+// If auth runs first, CORS preflight requests would be rejected
 app.UseCors("AllowAngularApp");
 
-// Then authentication middleware
+// Add our custom authentication middleware
 app.UseBasicAuthenticationMiddleware();
 
-// Map controllers
+// Enable controller routing
 app.MapControllers();
 
+// Start the application
 app.Run();

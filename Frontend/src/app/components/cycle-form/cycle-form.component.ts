@@ -1,9 +1,20 @@
-import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
+/**
+ * Cycle Form Component - Add or edit period cycles
+ * 
+ * This component provides:
+ * - Form for creating new cycles with start/end dates and notes
+ * - Symptom selection with intensity rating
+ * - Editing existing cycles and symptoms
+ * - Deletion of cycles with confirmation
+ * 
+ * It handles the core data entry functionality of the app.
+ */
+import { Component, OnInit, TemplateRef, ViewChild, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
-import {  FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule} from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule} from '@angular/forms';
 
-// Angular Material modules for form UI and feedback
+// Angular Material modules
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,20 +28,16 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 
-// App-specific services and models
+// App services and models
 import { AuthService } from '../../services/auth.service';
 import { PeriodCycleService } from '../../services/periodcycle.service';
 import { SymptomService } from '../../services/symptom.service';
 import { CycleSymptomService } from '../../services/cyclesymptom.service';
-
 import { Periodcycle } from '../../models/Periodcycle';
 import { Symptom } from '../../models/Symptom';
 import { CreateCycleSymptomDto } from '../../models/CycleSymptom';
+import { NavFooterComponent } from '../shared/nav-footer.component';
 
-/**
- * Component for creating or editing a menstrual cycle along with associated symptoms.
- * Uses reactive forms to bind cycle dates, notes, and symptom selections.
- */
 @Component({
   selector: 'app-cycle-form-page',
   standalone: true,
@@ -50,32 +57,39 @@ import { CreateCycleSymptomDto } from '../../models/CycleSymptom';
     MatDialogModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+    NavFooterComponent
   ],
   templateUrl: './cycle-form.component.html',
   styleUrls: ['./cycle-form.component.css']
 })
-export class CycleFormPageComponent implements OnInit {
-  // Reference to the delete confirmation dialog template
+export class CycleFormPageComponent implements OnInit, OnChanges {
+  // Route parameter bound automatically via withComponentInputBinding
+  @Input() cycle_id?: string;
+  
+  // Reference to delete confirmation dialog template
   @ViewChild('deleteDialog') deleteDialog!: TemplateRef<any>;
 
-  isEditMode = false; // Flag for edit vs. create; used in template
+  // Mode flag (edit existing vs create new)
+  isEditMode = false;
   cycleId: number | null = null;
 
-  cycleForm!: FormGroup;          // Reactive form group for cycle input
-  allSymptoms: Symptom[] = [];    // Loaded list of available symptoms
-  isLoading = false;              // Spinner flag during save/delete
-  errorMessage = '';              // Display errors to user
+  // Form and data
+  cycleForm!: FormGroup;          // Main form for cycle data
+  allSymptoms: Symptom[] = [];    // Available symptoms to select
+  
+  // UI state
+  isLoading = false;              // Loading state
+  errorMessage = '';              // Error display
 
-  // Datepicker constraints
-  minDate = new Date(2000, 0, 1);
-  maxDate = new Date();
+  // Date constraints for the date picker
+  minDate = new Date(2000, 0, 1); // Earliest allowed date
+  maxDate = new Date();           // Latest allowed date (today)
 
   constructor(
     private fb: FormBuilder,
     private auth: AuthService,
     private location: Location,
-    private route: ActivatedRoute,
     private periodCycleService: PeriodCycleService,
     private symptomService: SymptomService,
     private cycleSymptomService: CycleSymptomService,
@@ -83,47 +97,68 @@ export class CycleFormPageComponent implements OnInit {
     private dialog: MatDialog
   ) {}
 
+  /**
+   * Lifecycle hook that runs when input properties change
+   * Detects changes to the cycle_id route parameter
+   */
+  ngOnChanges(changes: SimpleChanges): void {
+    // Check if cycle_id input changed and is not undefined
+    if (changes['cycle_id'] && this.cycle_id) {
+      this.isEditMode = true;
+      this.cycleId = +this.cycle_id; // Convert string to number
+      
+      // If form is already initialized, load the cycle
+      if (this.cycleForm && this.allSymptoms.length > 0) {
+        this.loadCycle(this.cycleId);
+      }
+    }
+  }
+
+  /**
+   * Lifecycle hook that runs on component initialization
+   * Sets up the form and loads data
+   */
   ngOnInit(): void {
-    // Build form with validators and custom date-range validator
+    // Build form with validators and custom validation
     this.cycleForm = this.fb.group({
       cycleId:   [0],
       startDate: [null, Validators.required],
       endDate:   [null, Validators.required],
       notes:     [''],
-      symptoms:  this.fb.array([]) // FormArray for symptom checkboxes
+      symptoms:  this.fb.array([]) // Dynamic array for symptoms
     }, { validators: this.dateRangeValidator });
 
-    // Check if we're editing an existing cycle
-    this.route.params.subscribe(params => {
-      if (params['cycle_id']) {
-        this.isEditMode = true;
-        this.cycleId = +params['cycle_id'];
-        this.loadCycle(this.cycleId);
-      }
-    });
+    // Check if we're editing based on Input property
+    if (this.cycle_id) {
+      this.isEditMode = true;
+      this.cycleId = +this.cycle_id;
+    }
 
-    // Load symptom definitions and initialize controls
+    // Load symptom definitions and initialize form controls
     this.loadSymptoms();
   }
 
   /**
-   * Loads the list of symptoms and initializes form controls for each symptom
+   * Loads the list of available symptoms and adds form controls for each
    */
   private loadSymptoms(): void {
     this.symptomService.getAllSymptoms().subscribe({
       next: syms => {
         this.allSymptoms = syms;
         syms.forEach(s => {
+          // Create a form group for each symptom with selection and intensity
           const group = this.fb.group({
             symptomId: [s.symptomId],
             selected:  [false],
             intensity: [{ value: 1, disabled: true }, [Validators.min(1), Validators.max(5)]]
           });
-          // Enable intensity input only when symptom is selected
+          
+          // Enable/disable intensity based on selection
           group.get('selected')!.valueChanges.subscribe(sel =>
             sel ? group.get('intensity')!.enable({ emitEvent: false })
                 : group.get('intensity')!.disable({ emitEvent: false })
           );
+          
           this.symptoms.push(group);
         });
         
@@ -138,9 +173,10 @@ export class CycleFormPageComponent implements OnInit {
       }
     });
   }
-  
   /**
    * Loads an existing cycle for editing
+   * 
+   * @param cycleId ID of the cycle to load
    */
   private loadCycle(cycleId: number): void {
     const userId = this.auth.getUserId();
@@ -152,8 +188,10 @@ export class CycleFormPageComponent implements OnInit {
     this.isLoading = true;
     this.periodCycleService.getCyclesByUserId(userId).subscribe({
       next: cycles => {
+        // Find the cycle by ID in the user's cycles
         const cycle = cycles.find(c => c.cycleId === cycleId);
         if (cycle) {
+          // Populate form with cycle data
           this.cycleForm.patchValue({
             cycleId: cycle.cycleId,
             startDate: new Date(cycle.startDate),
@@ -161,7 +199,7 @@ export class CycleFormPageComponent implements OnInit {
             notes: cycle.notes || ''
           });
           
-          // Load symptoms
+          // Load symptoms for this cycle
           this.loadCycleSymptoms(cycleId);
         } else {
           this.errorMessage = 'Cycle not found';
@@ -177,12 +215,14 @@ export class CycleFormPageComponent implements OnInit {
   }
   
   /**
-   * Loads symptoms associated with a cycle and sets form values
+   * Loads symptoms associated with a cycle
+   * 
+   * @param cycleId ID of the cycle
    */
   private loadCycleSymptoms(cycleId: number): void {
     this.cycleSymptomService.getCycleSymptomsByCycleId(cycleId).subscribe({
       next: symptoms => {
-        // For each symptom in the cycle, set corresponding checkbox and intensity
+        // For each symptom in the cycle, update form controls
         symptoms.forEach(cs => {
           const index = this.allSymptoms.findIndex(s => s.symptomId === cs.symptomId);
           if (index !== -1 && index < this.symptoms.controls.length) {
@@ -200,13 +240,16 @@ export class CycleFormPageComponent implements OnInit {
     });
   }
 
-  // Convenience getter for the FormArray of symptom controls
+  // Convenience getter for the symptoms FormArray
   get symptoms(): FormArray {
     return this.cycleForm.get('symptoms') as FormArray;
   }
 
   /**
-   * Custom validator to ensure endDate >= startDate.
+   * Custom validator to ensure end date is not before start date
+   * 
+   * @param group Form group to validate
+   * @returns Validation error object or null if valid
    */
   private dateRangeValidator(group: FormGroup) {
     const start = group.get('startDate')!.value;
@@ -215,7 +258,7 @@ export class CycleFormPageComponent implements OnInit {
   }
 
   /**
-   * Cancel and navigate back to the previous page
+   * Cancels form and navigates back
    */
   cancel(): void {
     this.location.back();
@@ -233,7 +276,7 @@ export class CycleFormPageComponent implements OnInit {
   }
 
   /**
-   * Saves the cycle and its symptom links to the server
+   * Saves the cycle and its associated symptoms
    */
   saveCycle(): void {
     if (this.cycleForm.invalid) return;
@@ -246,11 +289,13 @@ export class CycleFormPageComponent implements OnInit {
       return;
     }
 
+    // Extract form values
     const { cycleId, startDate, endDate, notes } = this.cycleForm.value;
-    // Compute duration inclusive of start and end
+    
+    // Calculate duration (inclusive of start and end dates)
     const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000*60*60*24)) + 1;
 
-    // Build cycle DTO
+    // Build cycle object
     const cycle: Periodcycle = { 
       cycleId: this.isEditMode ? this.cycleId! : 0, 
       userId, 
@@ -261,6 +306,7 @@ export class CycleFormPageComponent implements OnInit {
       createdAt: new Date() 
     };
 
+    // Save cycle, then save symptoms
     this.periodCycleService.createCycle(cycle).subscribe({
       next: saved => this.saveSymptoms(saved.cycleId, startDate),
       error: err => this.handleError('Error saving cycle', err)
@@ -268,9 +314,13 @@ export class CycleFormPageComponent implements OnInit {
   }
 
   /**
-   * Helper to save selected symptoms after cycle is created
+   * Saves selected symptoms after cycle is created
+   * 
+   * @param cycleId ID of the saved cycle
+   * @param date Date to use for symptoms
    */
   private saveSymptoms(cycleId: number, date: Date): void {
+    // Extract selected symptoms from form
     const links: CreateCycleSymptomDto[] = this.symptoms.controls
       .map(c => c.value)
       .filter((c:any) => c.selected)
@@ -278,15 +328,20 @@ export class CycleFormPageComponent implements OnInit {
         cycleId, 
         symptomId: c.symptomId, 
         intensity: c.intensity, 
-        date: date.toISOString().slice(0,10) 
+        date: date.toISOString().slice(0,10) // Format YYYY-MM-DD 
       }));
 
+    // If no symptoms selected, complete save process
     if (!links.length) return this.finishSave();
 
+    // Save each symptom
     let done = 0;
     links.forEach(dto =>
       this.cycleSymptomService.createCycleSymptom(dto).subscribe({
-        next: () => { if (++done === links.length) this.finishSave(); },
+        next: () => { 
+          // When all symptoms are saved, finish
+          if (++done === links.length) this.finishSave(); 
+        },
         error: err => this.handleError('Error saving symptoms', err)
       })
     );
@@ -294,6 +349,9 @@ export class CycleFormPageComponent implements OnInit {
 
   /**
    * Common error handler
+   * 
+   * @param message User-friendly error message
+   * @param err Error object
    */
   private handleError(message: string, err: any): void {
     console.error(message, err);
@@ -302,7 +360,7 @@ export class CycleFormPageComponent implements OnInit {
   }
 
   /**
-   * Show snackbar and navigate back after successful save
+   * Completes the save process with success notification
    */
   private finishSave(): void {
     this.snack.open('Cycle saved', 'Close', { duration: 3000 });

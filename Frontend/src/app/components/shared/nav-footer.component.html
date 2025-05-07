@@ -1,0 +1,29 @@
+<nav class="page-nav">
+    <a mat-raised-button 
+       [color]="activeRoute === 'dashboard' ? 'primary' : undefined"
+       routerLink="/dashboard"
+       [class.active]="activeRoute === 'dashboard'">
+      <mat-icon>home</mat-icon> Dashboard
+    </a>
+    
+    <a mat-raised-button 
+       [color]="activeRoute === 'calendar' ? 'primary' : undefined"
+       routerLink="/calendar"
+       [class.active]="activeRoute === 'calendar'">
+      <mat-icon>calendar_today</mat-icon> Calendar
+    </a>
+    
+    <a mat-raised-button 
+       [color]="activeRoute === 'add-cycle' ? 'primary' : undefined"
+       routerLink="/cycle/add"
+       [class.active]="activeRoute === 'add-cycle'">
+      <mat-icon>add</mat-icon> Add Cycle
+    </a>
+    
+    <a mat-raised-button 
+       [color]="activeRoute === 'profile' ? 'primary' : undefined"
+       routerLink="/profile"
+       [class.active]="activeRoute === 'profile'">
+      <mat-icon>person</mat-icon> Profile
+    </a>
+  </nav>

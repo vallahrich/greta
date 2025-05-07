@@ -1,3 +1,12 @@
+<!-- 
+  PeriodTracker.Tests project file - Defines the test project settings
+  
+  This file specifies:
+  - .NET 8.0 framework target
+  - MSTest as the testing framework
+  - Project reference to the API project for testing
+  - Enables nullable reference types for better type safety
+-->
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -9,11 +18,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Point this at your API project so AuthenticationHelper is available -->
+    <!-- Reference to the API project so we can test its classes -->
     <ProjectReference Include="..\PeriodTracker.API\PeriodTracker.API.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Test framework dependencies -->
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
@@ -21,6 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Import MSTest namespaces by default -->
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
   </ItemGroup>
 

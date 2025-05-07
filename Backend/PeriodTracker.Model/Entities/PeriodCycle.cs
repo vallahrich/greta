@@ -1,45 +1,55 @@
+/// <summary>
+/// PeriodCycle.cs - Represents a single menstrual cycle record
+/// 
+/// This entity records a period with start and end dates, belonging to a specific user.
+/// It's the core data object for the period tracking functionality.
+/// </summary>
+
 using System.Text.Json.Serialization;
 using PeriodTracker.Model.Entities;
 
-// Represents a menstrual cycle record belonging to a specific user
+// Represents a record of a menstrual cycle
 public class PeriodCycle
 {
-    // Constructor for manual instantiation with ID
+    // Constructor for when ID is known
     public PeriodCycle(int id)
     {
         CycleId = id;
     }
 
-    // Parameterless constructor used during JSON deserialization
+    // Parameterless constructor for JSON deserialization
     [JsonConstructor]
     public PeriodCycle() { }
 
-    // Primary key of the cycle record
+    // Primary key - uniquely identifies this cycle
     public int CycleId { get; set; }
 
-    // Foreign key: ID of the user who owns this cycle
+    // Foreign key - links to the user who owns this cycle
     public int UserId { get; set; }
 
-    // Start date of the cycle period
+    // Start date of the period/cycle
     public DateTime StartDate { get; set; }
 
-    // End date of the cycle period
+    // End date of the period/cycle 
     public DateTime EndDate { get; set; }
 
-    // Computed duration in days (inclusive)
+    // Computed property: Duration in days (inclusive of start and end)
+    // This is calculated on-the-fly rather than stored
     public int Duration => (int)(EndDate - StartDate).TotalDays + 1;
 
-    // Optional notes for the cycle (e.g., symptoms summary)
+    // Optional notes about the cycle
     public string Notes { get; set; }
 
-    // Timestamp when the record was created
+    // When this record was created
     public DateTime CreatedAt { get; set; } = DateTime.Now; 
 
-    // Navigation property to the owning user (ignored in JSON)
+    // Navigation property to the user who owns this cycle
+    // [JsonIgnore] prevents circular references in JSON serialization
     [JsonIgnore]
     public User User { get; set; }
     
-    // Navigation to associated symptoms (ignored in JSON)
+    // Navigation property to associated symptoms
+    // This creates a one-to-many relationship with CycleSymptom
     [JsonIgnore]
     public List<CycleSymptom> CycleSymptoms { get; set; } = new List<CycleSymptom>();
 }
