@@ -5,7 +5,7 @@ import {
   HttpClientTestingModule,
   HttpTestingController
 } from '@angular/common/http/testing';
-import { PeriodCycleService } from './periodcycle.service';
+import { PeriodCycleService } from './cycle.service';
 import { Periodcycle } from '../models/Periodcycle';
 import { environment } from '../environments/environment';
 

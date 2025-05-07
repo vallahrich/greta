@@ -14,21 +14,16 @@ import { environment } from '../environments/environment';
 import { Symptom } from '../models/Symptom';
 
 @Injectable({
-  providedIn: 'root'  // Singleton service available app-wide
+  providedIn: 'root'
 })
 export class SymptomService {
-  // API endpoint URL
-  private apiUrl = `${environment.apiUrl}/symptom`;
+  private apiUrl = `${environment.apiUrl}/symptoms`;
   
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
   
-  /**
-   * Gets the complete list of available symptoms
-   * 
-   * @returns Observable of Symptom array
-   */
-  getAllSymptoms(): Observable<Symptom[]> {
-    return this.http.get<Symptom[]>(this.apiUrl).pipe(
+  // Get catalog of available symptoms
+  getSymptomCatalog(): Observable<Symptom[]> {
+    return this.http.get<Symptom[]>(`${this.apiUrl}/catalog`).pipe(
       catchError(error => {
         console.error('Error fetching symptoms:', error);
         return throwError(() => error);
