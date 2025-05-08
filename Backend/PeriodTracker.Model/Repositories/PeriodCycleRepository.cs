@@ -109,7 +109,7 @@ public class PeriodCycleRepository : BaseRepository
             cmd.Parameters.AddWithValue("@startDate", NpgsqlDbType.Date, cycle.StartDate);
             cmd.Parameters.AddWithValue("@endDate", NpgsqlDbType.Date, cycle.EndDate);
             cmd.Parameters.AddWithValue("@notes", NpgsqlDbType.Text, (object)cycle.Notes ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@createdAt", NpgsqlDbType.TimestampTz, DateTime.UtcNow);
+            cmd.Parameters.AddWithValue("@createdAt", NpgsqlDbType.TimestampTz, DateTime.Now);
 
             dbConn.Open();
             // Execute and get the generated ID

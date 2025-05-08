@@ -27,7 +27,8 @@ export class CycleService {
    * @returns A string in YYYY-MM-DD format
    */
   private formatLocalDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+    // This ensures we get the date in local timezone, not UTC
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
   
   /**
