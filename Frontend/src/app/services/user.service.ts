@@ -68,13 +68,9 @@ export class UserService {
       Password: password
     };
 
-    console.log(`Updating password for user ID: ${userId}`);
-
     return this.http.put(`${this.baseUrl}/password`, request).pipe(
-      tap(response => console.log('Password update successful')),
+      tap(() => {}),
       catchError(error => {
-        console.error('Error updating password:', error);
-
         // Provide user-friendly error messages based on status code
         if (error.status === 403) {
           return throwError(() => new Error('You do not have permission to update this password.'));
@@ -96,13 +92,9 @@ export class UserService {
    * @returns Observable of the HTTP response
    */
   deleteUser(id: number): Observable<any> {
-    console.log(`Deleting user with ID: ${id}`);
-
     return this.http.delete(`${this.baseUrl}/${id}`).pipe(
-      tap(() => console.log('User deleted successfully')),
+      tap(() => {}),
       catchError(error => {
-        console.error('Error deleting user:', error);
-
         // Provide user-friendly error messages based on status code
         if (error.status === 403) {
           return throwError(() => new Error('You do not have permission to delete this account.'));
@@ -141,7 +133,6 @@ export class UserService {
       }
     }
 
-    console.error(errorMessage, error);
     return throwError(() => new Error(errorMessage));
   }
 }

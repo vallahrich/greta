@@ -1,3 +1,15 @@
+/**
+ * Calendar Component - Provides a monthly view of period cycles
+ * 
+ * This component:
+ * - Displays a calendar grid with period days highlighted
+ * - Shows fertility windows and ovulation days based on period data
+ * - Allows navigation between months
+ * - Has multiple visual indicators (period, fertile window, ovulation)
+ * 
+ * It's a comprehensive visualization of the user's cycle data.
+ */
+
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';

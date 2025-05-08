@@ -8,7 +8,7 @@
  * 
  * It's registered in app.config.ts and intercepts all HTTP requests.
  */
-import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpErrorResponse } from '@angular/common/http';
+import { HttpInterceptorFn, HttpRequest, HttpErrorResponse } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
@@ -16,13 +16,9 @@ import { Router } from '@angular/router';
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   
-  // Debug logging
-  console.log(`Request URL: ${req.url}`);
-  
   // Skip adding auth header for login/register requests
   // (These endpoints don't require authentication)
   if (req.url.includes('/auth/login') || req.url.includes('/auth/register')) {
-    console.log('Skipping auth header for auth endpoint');
     return next(req);
   }
   
@@ -31,7 +27,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   
   // If auth header exists, add it to the request
   if (authHeader) {
-    console.log('Adding auth header to request');
     const authRequest = req.clone({
       headers: req.headers.set('Authorization', authHeader)
     });
@@ -41,7 +36,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       catchError((error: HttpErrorResponse) => {
         // If server returns 401 Unauthorized, log the user out
         if (error.status === 401) {
-          console.log('401 Unauthorized response - logging out');
           // Clear all auth data
           localStorage.removeItem('authHeader');
           localStorage.removeItem('currentUser');
@@ -56,6 +50,5 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     );
   }
   
-  console.log('No auth header found for request');
   return next(req);
 };

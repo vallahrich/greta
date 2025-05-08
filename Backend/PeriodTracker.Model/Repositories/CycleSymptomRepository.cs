@@ -57,34 +57,35 @@ public class CycleSymptomRepository : BaseRepository
         }
     }
 
+    // Updates an existing symptom record
     public bool UpdateCycleSymptom(CycleSymptom cycleSymptom)
-{
-    NpgsqlConnection dbConn = null;
-    try
     {
-        dbConn = new NpgsqlConnection(ConnectionString);
-        var cmd = dbConn.CreateCommand();
-        cmd.CommandText = @"
-            UPDATE CycleSymptoms 
-            SET cycle_id = @cycleId, 
-                symptom_id = @symptomId,
-                intensity = @intensity, 
-                date = @date
-            WHERE cycle_symptom_id = @id";
-        
-        cmd.Parameters.AddWithValue("@cycleId", NpgsqlDbType.Integer, cycleSymptom.CycleId);
-        cmd.Parameters.AddWithValue("@symptomId", NpgsqlDbType.Integer, cycleSymptom.SymptomId);
-        cmd.Parameters.AddWithValue("@intensity", NpgsqlDbType.Integer, cycleSymptom.Intensity);
-        cmd.Parameters.AddWithValue("@date", NpgsqlDbType.Date, cycleSymptom.Date);
-        cmd.Parameters.AddWithValue("@id", NpgsqlDbType.Integer, cycleSymptom.CycleSymptomId);
+        NpgsqlConnection dbConn = null;
+        try
+        {
+            dbConn = new NpgsqlConnection(ConnectionString);
+            var cmd = dbConn.CreateCommand();
+            cmd.CommandText = @"
+                UPDATE CycleSymptoms 
+                SET cycle_id = @cycleId, 
+                    symptom_id = @symptomId,
+                    intensity = @intensity, 
+                    date = @date
+                WHERE cycle_symptom_id = @id";
+            
+            cmd.Parameters.AddWithValue("@cycleId", NpgsqlDbType.Integer, cycleSymptom.CycleId);
+            cmd.Parameters.AddWithValue("@symptomId", NpgsqlDbType.Integer, cycleSymptom.SymptomId);
+            cmd.Parameters.AddWithValue("@intensity", NpgsqlDbType.Integer, cycleSymptom.Intensity);
+            cmd.Parameters.AddWithValue("@date", NpgsqlDbType.Date, cycleSymptom.Date);
+            cmd.Parameters.AddWithValue("@id", NpgsqlDbType.Integer, cycleSymptom.CycleSymptomId);
 
-        return UpdateData(dbConn, cmd);
+            return UpdateData(dbConn, cmd);
+        }
+        finally
+        {
+            dbConn?.Close();
+        }
     }
-    finally
-    {
-        dbConn?.Close();
-    }
-}
 
     // Retrieves all symptoms for a specific cycle, joined with symptom details
     public List<CycleSymptom> GetSymptomsByCycleId(int cycleId)
@@ -197,8 +198,7 @@ public class CycleSymptomRepository : BaseRepository
         }
         catch (Exception ex)
         {
-            // Log error
-            Console.WriteLine($"Error deleting cycle symptoms for cycle {cycleId}: {ex.Message}");
+            // Log error in a real application
             return false;
         }
         finally

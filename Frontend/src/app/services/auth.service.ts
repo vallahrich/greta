@@ -14,13 +14,14 @@ import { Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { User } from '../models/User';
+import { environment } from '../environments/environment';
 
 @Injectable({
   providedIn: 'root' // Singleton service available app-wide
 })
 export class AuthService {
-  // Direct URL to API endpoint (avoids string interpolation issues)
-  private readonly BASE_URL = 'http://localhost:5113';
+  // Base URL for API endpoints
+  private readonly BASE_URL = environment.apiUrl;
   
   // Observable source for current user data - components can subscribe to changes
   private currentUserSubject: BehaviorSubject<User | null>;
@@ -54,9 +55,7 @@ export class AuthService {
    * @returns Observable of the login response
    */
   login(email: string, password: string): Observable<any> {
-    // Hardcoded URL to prevent string interpolation issues
-    const loginUrl = 'http://localhost:5113/api/auth/login';
-    console.log(`Making login request to: ${loginUrl}`);
+    const loginUrl = `${this.BASE_URL}/auth/login`;
     
     return this.http.post<any>(
       loginUrl,
@@ -76,7 +75,6 @@ export class AuthService {
         }
       }),
       catchError(error => {
-        console.error('Login error:', error);
         return throwError(() => error);
       })
     );
@@ -89,8 +87,7 @@ export class AuthService {
    * @returns Observable of the registration response
    */
   register(registerData: any): Observable<any> {
-    const registerUrl = `${this.BASE_URL}/api/auth/register`;
-    console.log(`Making registration request to: ${registerUrl}`);
+    const registerUrl = `${this.BASE_URL}/auth/register`;
     
     return this.http.post<any>(
       registerUrl,

@@ -32,7 +32,7 @@ public class BaseRepository
     }
     
     // Executes a SQL SELECT query and returns a DataReader
-    // Note: Caller must dispose the connection when done with the reader
+    // Caller must dispose the connection when done with the reader
     protected NpgsqlDataReader GetData(NpgsqlConnection conn, NpgsqlCommand cmd)
     {
         conn.Open();            // Open the connection
@@ -51,7 +51,6 @@ public class BaseRepository
         catch
         {
             // Swallow exception and return failure
-            // In a real app, we might want to log this or handle it differently
             return false;
         }
     }

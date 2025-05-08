@@ -1,3 +1,14 @@
+/**
+ * Cycle Service - Manages period cycle data operations
+ * 
+ * This service handles:
+ * - Retrieving cycle records with symptoms
+ * - Creating new cycle records
+ * - Updating existing cycle records
+ * - Deleting cycle records
+ * 
+ * It handles date formatting to ensure proper communication with the API.
+ */
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, throwError } from 'rxjs';
@@ -10,79 +21,90 @@ export class CycleService {
   
   constructor(private http: HttpClient) {}
   
-  // Get all cycles with their symptoms in one call
+  /**
+   * Format a Date object to YYYY-MM-DD string format
+   * @param date The date to format
+   * @returns A string in YYYY-MM-DD format
+   */
+  private formatLocalDate(date: Date): string {
+    return date.toISOString().split('T')[0];
+  }
+  
+  /**
+   * Get all cycles with their symptoms in one call
+   * @returns Observable of cycle array with symptoms
+   */
   getUserCycles(): Observable<CycleWithSymptoms[]> {
     return this.http.get<CycleWithSymptoms[]>(this.apiUrl).pipe(
       catchError(error => {
-        console.error('Error fetching cycles:', error);
         return throwError(() => error);
       })
     );
   }
   
-  // Create cycle with symptoms
+  /**
+   * Create cycle with symptoms
+   * @param cycle The cycle data to create
+   * @returns Observable of the created cycle
+   */
   createCycle(cycle: CycleWithSymptoms): Observable<CycleWithSymptoms> {
-    // Helper function to format dates properly for API
-    const formatLocalDate = (date: Date): string => {
-      return date.toISOString().split('T')[0];
-    };
-    
     // Clone and format the dates
     const formattedCycle = {
       ...cycle,
       startDate: cycle.startDate instanceof Date ? 
-        formatLocalDate(cycle.startDate) : cycle.startDate,
+        this.formatLocalDate(cycle.startDate) : cycle.startDate,
       endDate: cycle.endDate instanceof Date ? 
-        formatLocalDate(cycle.endDate) : cycle.endDate,
+        this.formatLocalDate(cycle.endDate) : cycle.endDate,
       symptoms: cycle.symptoms.map(s => ({
         symptomId: s.symptomId,
-        name: s.name, // Changed from symptomName to name to match backend
+        name: s.name,
         intensity: s.intensity,
-        date: s.date instanceof Date ? formatLocalDate(s.date) : s.date
+        date: s.date instanceof Date ? this.formatLocalDate(s.date) : s.date
       }))
     };
     
     return this.http.post<CycleWithSymptoms>(this.apiUrl, formattedCycle).pipe(
       catchError(error => {
-        console.error('Error creating cycle:', error);
         return throwError(() => error);
       })
     );
   }
   
-  // Update cycle with symptoms
+  /**
+   * Update cycle with symptoms
+   * @param id The cycle ID to update
+   * @param cycle The updated cycle data
+   * @returns Observable of the updated cycle
+   */
   updateCycle(id: number, cycle: CycleWithSymptoms): Observable<CycleWithSymptoms> {
-    // Helper function to format dates properly for API
-    const formatLocalDate = (date: Date): string => {
-      return date.toISOString().split('T')[0];
-    };
-    
     // Clone and format the dates
     const formattedCycle = {
       ...cycle,
       startDate: cycle.startDate instanceof Date ? 
-        formatLocalDate(cycle.startDate) : cycle.startDate,
+        this.formatLocalDate(cycle.startDate) : cycle.startDate,
       endDate: cycle.endDate instanceof Date ? 
-        formatLocalDate(cycle.endDate) : cycle.endDate,
+        this.formatLocalDate(cycle.endDate) : cycle.endDate,
       symptoms: cycle.symptoms.map(s => ({
         ...s,
-        date: s.date instanceof Date ? formatLocalDate(s.date) : s.date
+        date: s.date instanceof Date ? this.formatLocalDate(s.date) : s.date
       }))
     };
     
     return this.http.put<CycleWithSymptoms>(`${this.apiUrl}/${id}`, formattedCycle).pipe(
       catchError(error => {
-        console.error('Error updating cycle:', error);
         return throwError(() => error);
       })
     );
   }
   
-  // Delete cycle (backend handles cascading symptom deletion)
+  /**
+   * Delete cycle (backend handles cascading symptom deletion)
+   * @param id The cycle ID to delete
+   * @returns Observable of void
+   */
   deleteCycle(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
       catchError(error => {
-        console.error('Error deleting cycle:', error);
         return throwError(() => error);
       })
     );

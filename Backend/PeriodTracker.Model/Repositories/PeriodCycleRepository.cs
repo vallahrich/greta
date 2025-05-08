@@ -4,7 +4,8 @@
 /// This repository manages:
 /// - Retrieving cycles by ID or user ID
 /// - Creating new cycle records
-/// - Deleting cycle records with user ownership verification
+/// - Updating existing cycle records
+/// - Deleting cycle records with owner verification
 /// 
 /// It's central to the app's core functionality of tracking periods.
 /// </summary>
@@ -115,10 +116,8 @@ public class PeriodCycleRepository : BaseRepository
             cycle.CycleId = Convert.ToInt32(cmd.ExecuteScalar());
             return true;
         }
-        catch (Exception ex)
+        catch
         {
-            // Log error
-            Console.WriteLine($"[PeriodCycleRepository] Error inserting cycle: {ex.Message}");
             return false;
         }
         finally
@@ -151,9 +150,8 @@ public class PeriodCycleRepository : BaseRepository
             // Use the common UpdateData helper from BaseRepository
             return UpdateData(dbConn, cmd);
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"[PeriodCycleRepository] Error updating cycle: {ex.Message}");
             return false;
         }
         finally

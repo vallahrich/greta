@@ -94,10 +94,8 @@ public class UserRepository : BaseRepository
             user.UserId = Convert.ToInt32(cmd.ExecuteScalar());
             return true;
         }
-        catch (Exception ex)
+        catch
         {
-            // Log error - in a real app, use a proper logging framework
-            Console.WriteLine($"[UserRepository] Error inserting user: {ex.Message}");
             return false;
         }
     }

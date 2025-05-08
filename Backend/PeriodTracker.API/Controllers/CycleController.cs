@@ -1,6 +1,20 @@
+/// <summary>
+/// CyclesController - Manages menstrual cycle records and associated symptoms
+/// 
+/// This controller handles CRUD operations for period cycles through:
+/// - GET /api/cycles: Returns all cycles for the authenticated user
+/// - POST /api/cycles: Creates a new cycle with symptoms
+/// - PUT /api/cycles/{id}: Updates an existing cycle with symptoms
+/// - DELETE /api/cycles/{id}: Deletes a cycle and its symptoms
+/// 
+/// Main features:
+/// - Comprehensive cycle management with symptoms
+/// - User-specific data access (users can only access their own cycles)
+/// - Data validation (dates, permissions)
+/// - Transaction-like handling of cycle-symptom relationships
+/// </summary>
+
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace PeriodTracker.API.Controllers
 {
@@ -46,8 +60,10 @@ namespace PeriodTracker.API.Controllers
 
             foreach (var cycle in cycles)
             {
+                // Fetch associated symptoms for this cycle
                 var symptoms = _cycleSymptomRepository.GetSymptomsByCycleId(cycle.CycleId);
 
+                // Create DTO with combined data
                 var cycleDto = new CycleWithSymptomsDto
                 {
                     CycleId = cycle.CycleId,
@@ -58,7 +74,7 @@ namespace PeriodTracker.API.Controllers
                     Symptoms = symptoms.Select(s => new CycleSymptomDto
                     {
                         SymptomId = s.SymptomId,
-                        Name = s.Symptom?.Name ?? "Unknown",  // Changed from SymptomName to Name
+                        Name = s.Symptom?.Name ?? "Unknown",
                         Intensity = s.Intensity,
                         Date = s.Date
                     }).ToList()
@@ -83,7 +99,7 @@ namespace PeriodTracker.API.Controllers
 
             int userId = Convert.ToInt32(authItem);
 
-            // Verify userId matches authenticated user
+            // Verify userId matches authenticated user (security check)
             if (userId != cycleData.UserId)
                 return Forbid("You can only create cycles for yourself");
 
@@ -142,7 +158,7 @@ namespace PeriodTracker.API.Controllers
 
             int userId = Convert.ToInt32(authItem);
 
-            // Verify user can update this cycle
+            // Verify user can update this cycle (security check)
             if (userId != cycleData.UserId)
                 return Forbid("You can only update your own cycles");
 
@@ -173,7 +189,7 @@ namespace PeriodTracker.API.Controllers
             if (!_periodCycleRepository.UpdateCycle(cycle))
                 return BadRequest("Failed to update cycle");
 
-            // Handle symptoms - first delete all existing
+            // Handle symptoms - first delete all existing (transaction-like pattern)
             _cycleSymptomRepository.DeleteCycleSymptomsByCycleId(id);
 
             // Then add new symptoms
@@ -216,11 +232,11 @@ namespace PeriodTracker.API.Controllers
             if (existing == null)
                 return NotFound($"Cycle with ID {id} not found");
 
-            // Verify user can delete this cycle
+            // Verify user can delete this cycle (security check)
             if (existing.UserId != userId)
                 return StatusCode(StatusCodes.Status403Forbidden, "Cannot delete others' cycles");
 
-            // Delete associated symptoms first
+            // Delete associated symptoms first to maintain referential integrity
             _cycleSymptomRepository.DeleteCycleSymptomsByCycleId(id);
 
             // Then delete the cycle

@@ -95,20 +95,17 @@ export class LoginPageComponent implements OnInit {
     }
 
     const { email, password } = this.loginForm.value;
-    console.log(`Attempting to login with email: ${email}`);
     
     this.isLoading = true;
     this.errorMessage = '';
 
     // Call auth service to perform login
     this.authService.login(email, password).subscribe({
-      next: (response: any) => {
-        console.log('Login successful, token received:', response.token);
+      next: () => {
         this.isLoading = false;
         this.router.navigate(['/dashboard']); // Redirect on success
       },
       error: (error: HttpErrorResponse) => {
-        console.error('Login error details:', error);
         this.isLoading = false;
         
         // Show user-friendly error message based on status code
@@ -143,7 +140,7 @@ export class LoginPageComponent implements OnInit {
 
     // Call auth service to perform registration
     this.authService.register(registerData).subscribe({
-      next: (response: any) => {
+      next: () => {
         this.isLoading = false;
         // Show success message
         this.snackBar.open('Registration successful! Please login.', 'Close', {
@@ -164,12 +161,7 @@ export class LoginPageComponent implements OnInit {
         } else {
           this.errorMessage = 'Registration failed. Please try again.';
         }
-        console.error('Registration error:', error);
       }
     });
   }
-
-  // Convenience getters for form fields (used in template)
-  get email() { return this.loginForm.get('email'); }
-  get password() { return this.loginForm.get('password'); }
 }
