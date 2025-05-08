@@ -82,9 +82,9 @@ export class CycleFormPageComponent implements OnInit {
 
     // Check if editing
     this.route.params.subscribe(params => {
-      if (params['id']) {
+      if (params['cycle_id']) {
         this.isEditMode = true;
-        this.cycleId = +params['id'];
+        this.cycleId = +params['cycle_id'];
       }
     });
 
