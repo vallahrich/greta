@@ -234,7 +234,7 @@ export class CycleFormPageComponent implements OnInit {
     });
   }
 
-/**
+  /**
    * Saves the cycle and symptoms
    */
   saveCycle(): void {
@@ -266,12 +266,27 @@ export class CycleFormPageComponent implements OnInit {
     const symptoms = this.symptoms.controls
       .filter(c => c.value.selected)
       .map(c => {
-        // Use start date as default symptom date - this is the issue!
-        const symptomDate = c.value.date || startDate;
-        console.log('Creating symptom:', {
+        // Use start date as default if no specific date is set
+        // This ensures symptom dates are within the cycle range
+        let symptomDate = c.value.date;
+        
+        // If date is not set or invalid, use start date
+        if (!symptomDate || !(symptomDate instanceof Date)) {
+          symptomDate = startDate;
+        }
+        
+        // Ensure symptom date is not before start date or after end date
+        if (symptomDate < startDate) {
+          symptomDate = startDate;
+        } else if (symptomDate > endDate) {
+          symptomDate = endDate;
+        }
+        
+        console.log('Processing symptom:', {
           id: c.value.symptomId,
           name: c.value.symptomName,
-          date: symptomDate,
+          originalDate: c.value.date,
+          finalDate: symptomDate,
           dateType: typeof symptomDate
         });
         
@@ -279,7 +294,7 @@ export class CycleFormPageComponent implements OnInit {
           symptomId: c.value.symptomId,
           name: c.value.symptomName,
           intensity: c.value.intensity,
-          date: symptomDate  // This should be a Date object
+          date: symptomDate  // Ensure this is a Date object
         };
       });
     
@@ -312,7 +327,23 @@ export class CycleFormPageComponent implements OnInit {
       error: (err) => {
         console.error('Error details:', err);
         this.isLoading = false;
-        this.errorMessage = 'Failed to save cycle';
+        
+        // Show more detailed error message
+        if (err.status === 400 && err.error) {
+          if (typeof err.error === 'string') {
+            this.errorMessage = err.error;
+          } else if (err.error.message) {
+            this.errorMessage = err.error.message;
+          } else if (err.error.errors) {
+            // Handle .NET Core validation errors
+            const validationErrors = Object.values(err.error.errors).flat();
+            this.errorMessage = validationErrors.join(', ');
+          } else {
+            this.errorMessage = 'Invalid data. Please check your input.';
+          }
+        } else {
+          this.errorMessage = 'Failed to save cycle. Please try again.';
+        }
       }
     });
   }
