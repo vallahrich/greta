@@ -104,20 +104,26 @@ public class PeriodCycleRepository : BaseRepository
                 VALUES (@userId, @startDate, @endDate, @notes, @createdAt)
                 RETURNING cycle_id";
 
-            // Add parameters to prevent SQL injection
+            // Explicitly strip time components for Date fields
             cmd.Parameters.AddWithValue("@userId", NpgsqlDbType.Integer, cycle.UserId);
-            cmd.Parameters.AddWithValue("@startDate", NpgsqlDbType.Date, cycle.StartDate);
-            cmd.Parameters.AddWithValue("@endDate", NpgsqlDbType.Date, cycle.EndDate);
+            cmd.Parameters.AddWithValue("@startDate", NpgsqlDbType.Date, cycle.StartDate.Date);
+            cmd.Parameters.AddWithValue("@endDate", NpgsqlDbType.Date, cycle.EndDate.Date);
             cmd.Parameters.AddWithValue("@notes", NpgsqlDbType.Text, (object)cycle.Notes ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@createdAt", NpgsqlDbType.TimestampTz, DateTime.Now);
+            cmd.Parameters.AddWithValue("@createdAt", NpgsqlDbType.TimestampTz, DateTime.UtcNow);
 
             dbConn.Open();
-            // Execute and get the generated ID
-            cycle.CycleId = Convert.ToInt32(cmd.ExecuteScalar());
-            return true;
+            var result = cmd.ExecuteScalar();
+            if (result != null)
+            {
+                cycle.CycleId = Convert.ToInt32(result);
+                return true;
+            }
+            return false;
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"Error in InsertCycle: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             return false;
         }
         finally
@@ -141,8 +147,8 @@ public class PeriodCycleRepository : BaseRepository
                 notes = @notes
             WHERE cycle_id = @cycleId AND user_id = @userId";
 
-            cmd.Parameters.AddWithValue("@startDate", NpgsqlDbType.Date, cycle.StartDate);
-            cmd.Parameters.AddWithValue("@endDate", NpgsqlDbType.Date, cycle.EndDate);
+            cmd.Parameters.AddWithValue("@startDate", NpgsqlDbType.Date, cycle.StartDate.Date);
+            cmd.Parameters.AddWithValue("@endDate", NpgsqlDbType.Date, cycle.EndDate.Date);
             cmd.Parameters.AddWithValue("@notes", NpgsqlDbType.Text, (object)cycle.Notes ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@cycleId", NpgsqlDbType.Integer, cycle.CycleId);
             cmd.Parameters.AddWithValue("@userId", NpgsqlDbType.Integer, cycle.UserId);

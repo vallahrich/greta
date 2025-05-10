@@ -40,8 +40,8 @@ public class PeriodCycle
     // Optional notes about the cycle
     public string Notes { get; set; }
 
-    // When this record was created
-    public DateTime CreatedAt { get; set; } = DateTime.Now; 
+    // When this record was created (set by repository, not automatically)
+    public DateTime CreatedAt { get; set; }
 
     // Navigation property to the user who owns this cycle
     // [JsonIgnore] prevents circular references in JSON serialization

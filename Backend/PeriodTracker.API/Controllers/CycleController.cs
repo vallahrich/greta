@@ -90,7 +90,7 @@ namespace PeriodTracker.API.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<CycleWithSymptomsDto> CreateCycle([FromBody] CycleWithSymptomsDto cycleData)
+        public ActionResult<CycleWithSymptomsDto> CreateCycle([FromBody] CreateCycleDto cycleData)
         {
             // Get authenticated user
             var authItem = HttpContext.Items["UserId"];
@@ -140,8 +140,17 @@ namespace PeriodTracker.API.Controllers
             }
 
             // Return the created cycle with its ID
-            cycleData.CycleId = cycle.CycleId;
-            return CreatedAtAction(nameof(GetUserCycles), cycleData);
+            var result = new CycleWithSymptomsDto
+            {
+                CycleId = cycle.CycleId,
+                UserId = cycle.UserId,
+                StartDate = cycle.StartDate,
+                EndDate = cycle.EndDate,
+                Notes = cycle.Notes,
+                Symptoms = cycleData.Symptoms ?? new List<CycleSymptomDto>()
+            };
+            
+            return CreatedAtAction(nameof(GetUserCycles), result);
         }
 
         // PUT: api/cycles/{id}
@@ -149,7 +158,7 @@ namespace PeriodTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<CycleWithSymptomsDto> UpdateCycle(int id, [FromBody] CycleWithSymptomsDto cycleData)
+        public ActionResult<CycleWithSymptomsDto> UpdateCycle(int id, [FromBody] UpdateCycleDTO cycleData)
         {
             // Get authenticated user
             var authItem = HttpContext.Items["UserId"];
@@ -210,7 +219,18 @@ namespace PeriodTracker.API.Controllers
                 }
             }
 
-            return Ok(cycleData);
+            // Return the updated cycle as CycleWithSymptomsDto
+            var result = new CycleWithSymptomsDto
+            {
+                CycleId = cycleData.CycleId,
+                UserId = cycleData.UserId,
+                StartDate = cycleData.StartDate,
+                EndDate = cycleData.EndDate,
+                Notes = cycleData.Notes,
+                Symptoms = cycleData.Symptoms ?? new List<CycleSymptomDto>()
+            };
+
+            return Ok(result);
         }
 
         // DELETE: api/cycles/{id}
@@ -247,6 +267,7 @@ namespace PeriodTracker.API.Controllers
         }
     }
 
+    // DTO for returning cycle data with symptoms
     public class CycleWithSymptomsDto
     {
         public int CycleId { get; set; }
@@ -257,6 +278,28 @@ namespace PeriodTracker.API.Controllers
         public List<CycleSymptomDto> Symptoms { get; set; } = new List<CycleSymptomDto>();
     }
 
+    // DTO for updating a cycle
+    public class UpdateCycleDTO
+    {
+        public int CycleId { get; set; }
+        public int UserId { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string Notes { get; set; }
+        public List<CycleSymptomDto> Symptoms { get; set; } = new List<CycleSymptomDto>();
+    }
+
+    // DTO for creating a new cycle
+    public class CreateCycleDto
+    {
+        public int UserId { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string Notes { get; set; }
+        public List<CycleSymptomDto> Symptoms { get; set; } = new List<CycleSymptomDto>();
+    }
+
+    // DTO for cycle symptoms
     public class CycleSymptomDto
     {
         public int SymptomId { get; set; }

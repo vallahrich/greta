@@ -36,8 +36,8 @@ public class CycleSymptom
     // Date when the symptom was experienced
     public DateTime Date { get; set; }
 
-    // When this record was created
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    // When this record was created (set by repository, not automatically)
+    public DateTime CreatedAt { get; set; }
 
     // Navigation property to the parent cycle
     public PeriodCycle PeriodCycle { get; set; }

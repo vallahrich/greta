@@ -76,7 +76,7 @@ public class CycleSymptomRepository : BaseRepository
             cmd.Parameters.AddWithValue("@cycleId", NpgsqlDbType.Integer, cycleSymptom.CycleId);
             cmd.Parameters.AddWithValue("@symptomId", NpgsqlDbType.Integer, cycleSymptom.SymptomId);
             cmd.Parameters.AddWithValue("@intensity", NpgsqlDbType.Integer, cycleSymptom.Intensity);
-            cmd.Parameters.AddWithValue("@date", NpgsqlDbType.Date, cycleSymptom.Date);
+            cmd.Parameters.AddWithValue("@date", NpgsqlDbType.Date, cycleSymptom.Date.Date);
             cmd.Parameters.AddWithValue("@id", NpgsqlDbType.Integer, cycleSymptom.CycleSymptomId);
 
             return UpdateData(dbConn, cmd);
@@ -141,21 +141,27 @@ public class CycleSymptomRepository : BaseRepository
             dbConn = new NpgsqlConnection(ConnectionString);
             var cmd = dbConn.CreateCommand();
             cmd.CommandText = @"
-                INSERT INTO CycleSymptoms (cycle_id, symptom_id, intensity, date)
-                VALUES (@cycleId, @symptomId, @intensity, @date)
+                INSERT INTO CycleSymptoms (cycle_id, symptom_id, intensity, date, created_at)
+                VALUES (@cycleId, @symptomId, @intensity, @date, @createdAt)
                 RETURNING cycle_symptom_id";
             cmd.Parameters.AddWithValue("@cycleId", NpgsqlDbType.Integer, cycleSymptom.CycleId);
             cmd.Parameters.AddWithValue("@symptomId", NpgsqlDbType.Integer, cycleSymptom.SymptomId);
             cmd.Parameters.AddWithValue("@intensity", NpgsqlDbType.Integer, cycleSymptom.Intensity);
-            cmd.Parameters.AddWithValue("@date", NpgsqlDbType.Date, cycleSymptom.Date);
+            cmd.Parameters.AddWithValue("@date", NpgsqlDbType.Date, cycleSymptom.Date.Date);
+            cmd.Parameters.AddWithValue("@createdAt", NpgsqlDbType.TimestampTz, DateTime.UtcNow);
 
             dbConn.Open();
-            // Execute and get the generated ID
-            cycleSymptom.CycleSymptomId = Convert.ToInt32(cmd.ExecuteScalar());
-            return true;
+            var result = cmd.ExecuteScalar();
+            if (result != null)
+            {
+                cycleSymptom.CycleSymptomId = Convert.ToInt32(result);
+                return true;
+            }
+            return false;
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"Error in InsertCycleSymptom: {ex.Message}");
             return false;
         }
         finally
