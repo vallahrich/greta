@@ -1,4 +1,3 @@
-// src/app/services/symptom.service.spec.ts
 
 import { TestBed } from '@angular/core/testing';
 import {
@@ -36,7 +35,8 @@ describe('SymptomService', () => {
       { symptomId: 2, name: 'Cramps' }
     ];
 
-    service.getAllSymptoms().subscribe((symptoms: Symptom[]) => {
+    // Changed from getAllSymptoms() to getSymptomCatalog()
+    service.getSymptomCatalog().subscribe((symptoms: Symptom[]) => {
       expect(symptoms).toEqual(mockList);
       done();
     });

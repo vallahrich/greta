@@ -234,37 +234,68 @@ export class CycleFormPageComponent implements OnInit {
     });
   }
 
-  /**
+/**
    * Saves the cycle and symptoms
    */
   saveCycle(): void {
-    if (this.cycleForm.invalid) return;
+    if (this.cycleForm.invalid) {
+      console.log('Form is invalid');
+      return;
+    }
     
     this.isLoading = true;
     
     const userId = this.auth.getUserId();
+    console.log('Current userId:', userId);
+    
     if (!userId) {
       this.errorMessage = 'User authentication error. Please log in again.';
       this.isLoading = false;
       return;
     }
     
-    // Prepare the cycle data with selected symptoms
+    // Get the form values
+    const startDate = this.cycleForm.value.startDate;
+    const endDate = this.cycleForm.value.endDate;
+    
+    console.log('=== PREPARING CYCLE DATA ===');
+    console.log('Form startDate:', startDate, typeof startDate);
+    console.log('Form endDate:', endDate, typeof endDate);
+    
+    // Prepare symptoms with proper dates
+    const symptoms = this.symptoms.controls
+      .filter(c => c.value.selected)
+      .map(c => {
+        // Use start date as default symptom date - this is the issue!
+        const symptomDate = c.value.date || startDate;
+        console.log('Creating symptom:', {
+          id: c.value.symptomId,
+          name: c.value.symptomName,
+          date: symptomDate,
+          dateType: typeof symptomDate
+        });
+        
+        return {
+          symptomId: c.value.symptomId,
+          name: c.value.symptomName,
+          intensity: c.value.intensity,
+          date: symptomDate  // This should be a Date object
+        };
+      });
+    
+    // Prepare the cycle data
     const cycleData: CycleWithSymptoms = {
       cycleId: this.isEditMode ? this.cycleId! : 0,
       userId,
-      startDate: this.cycleForm.value.startDate,
-      endDate: this.cycleForm.value.endDate,
-      notes: this.cycleForm.value.notes,
-      symptoms: this.symptoms.controls
-        .filter(c => c.value.selected)
-        .map(c => ({
-          symptomId: c.value.symptomId,
-          name: c.value.symptomName, // Changed from symptomName to name to match the model
-          intensity: c.value.intensity,
-          date: c.value.date || this.cycleForm.value.startDate
-        }))
+      startDate: startDate,  // Keep as Date object
+      endDate: endDate,      // Keep as Date object
+      notes: this.cycleForm.value.notes || '',
+      symptoms: symptoms
     };
+    
+    console.log('=== FINAL COMPONENT DATA ===');
+    console.log('Final cycle data:', cycleData);
+    console.log('Symptoms to send:', cycleData.symptoms);
     
     // Create or update
     const request = this.isEditMode ?
@@ -272,15 +303,16 @@ export class CycleFormPageComponent implements OnInit {
       this.cycleService.createCycle(cycleData);
       
     request.subscribe({
-      next: () => {
+      next: (response) => {
+        console.log('Success response:', response);
         this.isLoading = false;
         this.snackBar.open('Cycle saved', 'Close', { duration: 3000 });
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {
+        console.error('Error details:', err);
         this.isLoading = false;
         this.errorMessage = 'Failed to save cycle';
-        console.error('Error saving cycle:', err);
       }
     });
   }
