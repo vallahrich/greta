@@ -78,6 +78,8 @@ public class CycleSymptomRepository : BaseRepository
             cmd.Parameters.AddWithValue("@intensity", NpgsqlDbType.Integer, cycleSymptom.Intensity);
             cmd.Parameters.AddWithValue("@date", NpgsqlDbType.Date, cycleSymptom.Date.Date);
             cmd.Parameters.AddWithValue("@id", NpgsqlDbType.Integer, cycleSymptom.CycleSymptomId);
+            cmd.Parameters.AddWithValue("@createdAt", NpgsqlDbType.TimestampTz, cycleSymptom.CreatedAt);
+
 
             return UpdateData(dbConn, cmd);
         }
